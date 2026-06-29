@@ -1,0 +1,6 @@
+{
+  "name": "Localisation Voiture MQTT",
+  "description": "Application plein écran de localisation de voiture en temps réel connectée par MQTT, sécurisée par paramètre GET.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
