@@ -5,7 +5,6 @@ dist
 .git
 .gitignore
 *.md
-package-lock.json
 npm-debug.log
 docker-compose.yml
 Dockerfile
