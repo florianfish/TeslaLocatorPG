@@ -32,10 +32,25 @@ export interface ConfigData {
   defaultLocation: { lat: number; lon: number };
 }
 
+export interface ActiveRoute {
+  destination: string | null;
+  energy_at_arrival: number | null;
+  miles_to_arrival: number | null;
+  minutes_to_arrival: number | null;
+  traffic_minutes_delay: number | null;
+  location: {
+    latitude: number;
+    longitude: number;
+  } | null;
+  error: string | null;
+}
+
 export interface CarTelemetry {
   speed: number | null;
   battery_level: number | null;
   state: string | null;
   odometer: number | null;
   outside_temp: number | null;
+  shift_state: string | null;
+  active_route: ActiveRoute | null;
 }

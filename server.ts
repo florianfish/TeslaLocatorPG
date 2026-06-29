@@ -48,6 +48,8 @@ let carTelemetry = {
   state: null as string | null,
   odometer: null as number | null,
   outside_temp: null as number | null,
+  shift_state: null as string | null,
+  active_route: null as any,
 };
 
 // Track all active topics and their latest details
@@ -197,7 +199,9 @@ function connectMqtt() {
           `teslamate/cars/${carId}/state`,
           `teslamate/cars/${carId}/battery_level`,
           `teslamate/cars/${carId}/odometer`,
-          `teslamate/cars/${carId}/outside_temp`
+          `teslamate/cars/${carId}/outside_temp`,
+          `teslamate/cars/${carId}/shift_state`,
+          `teslamate/cars/${carId}/active_route`
         );
       }
 
@@ -234,7 +238,7 @@ function connectMqtt() {
       };
 
       // Check if this topic belongs to any of the telemetry fields
-      const carIdMatch = topic.match(/^teslamate\/cars\/([^/]+)\/(speed|state|battery_level|odometer|outside_temp)$/);
+      const carIdMatch = topic.match(/^teslamate\/cars\/([^/]+)\/(speed|state|battery_level|odometer|outside_temp|shift_state|active_route)$/);
       if (carIdMatch) {
         const subTopicType = carIdMatch[2];
         const parsedVal = parseValue(rawPayload);
@@ -248,6 +252,18 @@ function connectMqtt() {
           carTelemetry.odometer = typeof parsedVal === "number" ? parsedVal : parseFloat(parsedVal);
         } else if (subTopicType === "outside_temp") {
           carTelemetry.outside_temp = typeof parsedVal === "number" ? parsedVal : parseFloat(parsedVal);
+        } else if (subTopicType === "shift_state") {
+          carTelemetry.shift_state = String(parsedVal);
+        } else if (subTopicType === "active_route") {
+          if (typeof parsedVal === "object" && parsedVal !== null) {
+            carTelemetry.active_route = parsedVal;
+          } else {
+            try {
+              carTelemetry.active_route = JSON.parse(String(parsedVal));
+            } catch {
+              carTelemetry.active_route = { error: String(parsedVal) };
+            }
+          }
         }
       }
 
@@ -271,6 +287,8 @@ function connectMqtt() {
             if (parsed.state !== undefined) carTelemetry.state = String(parsed.state);
             if (parsed.odometer !== undefined) carTelemetry.odometer = Number(parsed.odometer);
             if (parsed.outside_temp !== undefined) carTelemetry.outside_temp = Number(parsed.outside_temp);
+            if (parsed.shift_state !== undefined) carTelemetry.shift_state = String(parsed.shift_state);
+            if (parsed.active_route !== undefined) carTelemetry.active_route = parsed.active_route;
           }
         } catch {}
       }
@@ -457,7 +475,7 @@ app.post("/api/test-publish", (req, res) => {
     };
 
     // Check if this topic belongs to any of the telemetry fields
-    const carIdMatch = topic.match(/^teslamate\/cars\/([^/]+)\/(speed|state|battery_level|odometer|outside_temp)$/);
+    const carIdMatch = topic.match(/^teslamate\/cars\/([^/]+)\/(speed|state|battery_level|odometer|outside_temp|shift_state|active_route)$/);
     if (carIdMatch) {
       const subTopicType = carIdMatch[2];
       const parsedVal = parseValue(payloadStr);
@@ -471,6 +489,18 @@ app.post("/api/test-publish", (req, res) => {
         carTelemetry.odometer = typeof parsedVal === "number" ? parsedVal : parseFloat(parsedVal);
       } else if (subTopicType === "outside_temp") {
         carTelemetry.outside_temp = typeof parsedVal === "number" ? parsedVal : parseFloat(parsedVal);
+      } else if (subTopicType === "shift_state") {
+        carTelemetry.shift_state = String(parsedVal);
+      } else if (subTopicType === "active_route") {
+        if (typeof parsedVal === "object" && parsedVal !== null) {
+          carTelemetry.active_route = parsedVal;
+        } else {
+          try {
+            carTelemetry.active_route = JSON.parse(String(parsedVal));
+          } catch {
+            carTelemetry.active_route = { error: String(parsedVal) };
+          }
+        }
       }
     }
 
@@ -492,6 +522,8 @@ app.post("/api/test-publish", (req, res) => {
           if (parsed.state !== undefined) carTelemetry.state = String(parsed.state);
           if (parsed.odometer !== undefined) carTelemetry.odometer = Number(parsed.odometer);
           if (parsed.outside_temp !== undefined) carTelemetry.outside_temp = Number(parsed.outside_temp);
+          if (parsed.shift_state !== undefined) carTelemetry.shift_state = String(parsed.shift_state);
+          if (parsed.active_route !== undefined) carTelemetry.active_route = parsed.active_route;
         }
       } catch {}
     }

@@ -353,6 +353,94 @@ export default function DebugPanel({
               </div>
             </div>
 
+            {/* Telemetry Shift State Presets */}
+            <div>
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                Simulations Boite de Vitesse (shift_state)
+              </span>
+              <div className="grid grid-cols-4 gap-2">
+                {["P", "R", "N", "D"].map((gear) => (
+                  <button
+                    key={gear}
+                    type="button"
+                    onClick={() => {
+                      setPubTopic("teslamate/cars/1/shift_state");
+                      setPubPayload(gear);
+                    }}
+                    className="bg-slate-950 hover:bg-slate-800 border border-slate-850 rounded-xl p-2 text-center text-xs font-bold transition-all cursor-pointer text-[#E82127]"
+                  >
+                    Boite {gear}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Simulations Itinéraire Actif */}
+            <div>
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                Simulations Itinéraires (active_route)
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPubTopic("teslamate/cars/1/active_route");
+                    const userPreset = {
+                      destination: "Home",
+                      energy_at_arrival: 73,
+                      miles_to_arrival: 6.485299,
+                      minutes_to_arrival: 23.466667,
+                      traffic_minutes_delay: 0.0,
+                      location: {
+                        latitude: 35.278131,
+                        longitude: 29.744801
+                      },
+                      error: null
+                    };
+                    setPubPayload(JSON.stringify(userPreset, null, 2));
+                  }}
+                  className="bg-slate-950 hover:bg-slate-800 border border-slate-850 rounded-xl p-2.5 text-center text-xs font-bold transition-colors cursor-pointer text-emerald-400"
+                >
+                  Destination Home (Égypte)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPubTopic("teslamate/cars/1/active_route");
+                    const localPreset = {
+                      destination: "Maison (Paris)",
+                      energy_at_arrival: 85,
+                      miles_to_arrival: 3.1,
+                      minutes_to_arrival: 12.5,
+                      traffic_minutes_delay: 2.0,
+                      location: {
+                        latitude: 48.875,
+                        longitude: 2.305
+                      },
+                      error: null
+                    };
+                    setPubPayload(JSON.stringify(localPreset, null, 2));
+                  }}
+                  className="bg-slate-950 hover:bg-slate-800 border border-slate-850 rounded-xl p-2.5 text-center text-xs font-bold transition-colors cursor-pointer text-emerald-400"
+                >
+                  Destination (Paris)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPubTopic("teslamate/cars/1/active_route");
+                    const emptyPreset = {
+                      error: "No active route available"
+                    };
+                    setPubPayload(JSON.stringify(emptyPreset, null, 2));
+                  }}
+                  className="bg-slate-950 hover:bg-slate-800 border border-slate-850 rounded-xl p-2 col-span-2 text-center text-xs font-bold transition-colors cursor-pointer text-rose-400"
+                >
+                  Pas d'itinéraire actif
+                </button>
+              </div>
+            </div>
+
             {/* Custom publishing form */}
             <form onSubmit={handlePublish} className="space-y-4 pt-2 border-t border-slate-850">
               <div>

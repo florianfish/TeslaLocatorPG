@@ -37,6 +37,8 @@ export default function App() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const destinationMarkerRef = useRef<L.Marker | null>(null);
+  const routePolylineRef = useRef<L.Polyline | null>(null);
 
   // 1. Verification of the secure token
   useEffect(() => {
@@ -274,6 +276,85 @@ export default function App() {
     });
 
   }, [carLocation]);
+
+  // 5.5. Reactive destination marker and polyline route when active_route changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    // Remove existing destination marker if any
+    if (destinationMarkerRef.current) {
+      destinationMarkerRef.current.remove();
+      destinationMarkerRef.current = null;
+    }
+
+    // Remove existing polyline if any
+    if (routePolylineRef.current) {
+      routePolylineRef.current.remove();
+      routePolylineRef.current = null;
+    }
+
+    const activeRoute = carTelemetry?.active_route;
+    const destLoc = activeRoute?.location;
+
+    if (activeRoute && destLoc && typeof destLoc.latitude === "number" && typeof destLoc.longitude === "number") {
+      const destLat = destLoc.latitude;
+      const destLng = destLoc.longitude;
+      const destName = activeRoute.destination || "Destination";
+
+      // Define standard checkered flag/destination icon
+      const destIcon = L.divIcon({
+        className: "custom-dest-marker",
+        html: `
+          <div class="relative flex items-center justify-center">
+            <div class="absolute -inset-6 bg-[#22c55e]/30 rounded-full blur-lg animate-pulse"></div>
+            <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center shadow-lg border border-white/20">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a4.859 4.859 0 003.418-3.417 4.837 4.837 0 00-1.11-4.422C21.146 5.824 19.3 5 17.25 5c-1.39 0-2.73.34-3.93.94l-.1.05a9 9 0 01-6.19-.7L3 6v9.5H3z"/>
+              </svg>
+            </div>
+          </div>
+        `,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+      });
+
+      // Place the destination marker on the map
+      destinationMarkerRef.current = L.marker([destLat, destLng], { icon: destIcon }).addTo(mapRef.current);
+      destinationMarkerRef.current.bindPopup(`
+        <div class="p-1 font-sans text-xs">
+          <div class="font-bold text-slate-900 flex items-center gap-1.5 mb-1 text-sm">
+            <span class="inline-block w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
+            Destination
+          </div>
+          <p class="text-xs font-semibold text-slate-700 mb-2">${destName}</p>
+          ${activeRoute.energy_at_arrival !== undefined && activeRoute.energy_at_arrival !== null ? `<p class="text-[10px] text-slate-500 mb-1">Batterie à l'arrivée : <span class="font-bold text-emerald-600">${activeRoute.energy_at_arrival}%</span></p>` : ""}
+          ${activeRoute.minutes_to_arrival !== undefined && activeRoute.minutes_to_arrival !== null ? `<p class="text-[10px] text-slate-500 mb-1">Temps restant : <span class="font-bold text-slate-800">${Math.round(activeRoute.minutes_to_arrival)} min</span></p>` : ""}
+        </div>
+      `, {
+        closeButton: false,
+        offset: [0, -8]
+      });
+
+      // Draw polyline between car and destination
+      if (carLocation) {
+        const points: [number, number][] = [
+          [carLocation.lat, carLocation.lon],
+          [destLat, destLng]
+        ];
+        routePolylineRef.current = L.polyline(points, {
+          color: "#22c55e",
+          weight: 4,
+          opacity: 0.8,
+          dashArray: "10, 8",
+          lineJoin: "round"
+        }).addTo(mapRef.current);
+
+        // Adjust bounds to show both the car and the destination nicely
+        const bounds = L.latLngBounds(points);
+        mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+      }
+    }
+  }, [carLocation, carTelemetry?.active_route]);
 
   // Recenter helper
   const handleRecenter = () => {

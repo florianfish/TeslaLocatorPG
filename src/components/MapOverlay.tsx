@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Car, Compass, Navigation, RefreshCw, AlertTriangle, Settings, Radio, Gauge, Battery, Zap, Thermometer, Milestone } from "lucide-react";
+import { Car, Compass, Navigation, RefreshCw, AlertTriangle, Settings, Radio, Gauge, Battery, Zap, Thermometer, Milestone, MapPin } from "lucide-react";
 import { CarLocation, MqttStatus, CarTelemetry } from "../types";
 
 interface MapOverlayProps {
@@ -172,6 +172,106 @@ export default function MapOverlay({
                 </div>
               </div>
             </div>
+
+            {/* Rapport de vitesse (Shift State P R N D) */}
+            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/60 flex items-center justify-between text-xs text-slate-300">
+              <div className="flex items-center gap-2">
+                <Compass className="w-4 h-4 text-cyan-400" />
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Boite / Rapport</span>
+              </div>
+              <div className="flex items-center gap-1 font-mono font-bold text-xs">
+                {["P", "R", "N", "D"].map((gear) => {
+                  const isActive = carTelemetry?.shift_state === gear || (gear === "P" && !carTelemetry?.shift_state);
+                  return (
+                    <span
+                      key={gear}
+                      className={`w-6 h-6 flex items-center justify-center rounded-lg transition-all ${
+                        isActive
+                          ? "bg-[#E82127] text-white shadow-[0_0_8px_rgba(232,33,39,0.5)] font-black scale-105"
+                          : "bg-slate-900 text-slate-600 border border-slate-800/40"
+                      }`}
+                    >
+                      {gear}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Itinéraire Actif */}
+            {carTelemetry?.active_route && (
+              <div className="bg-slate-950 p-4 rounded-xl border border-emerald-500/20 shadow-lg shadow-emerald-500/5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-emerald-400" />
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Itinéraire Actif</span>
+                  </div>
+                  {carTelemetry.active_route.error ? (
+                    <span className="text-[9px] font-semibold text-rose-400 bg-rose-950/20 px-2 py-0.5 rounded border border-rose-800/20">Pas d'itinéraire</span>
+                  ) : (
+                    <span className="text-[9px] font-semibold text-emerald-400 bg-emerald-950/20 px-2 py-0.5 rounded border border-emerald-800/20">En cours</span>
+                  )}
+                </div>
+
+                {carTelemetry.active_route.error ? (
+                  <p className="text-xs text-slate-500 italic">Aucun trajet en cours vers une destination.</p>
+                ) : (
+                  <div className="space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="block text-[8px] text-slate-500 uppercase tracking-wider font-bold mb-0.5">Destination</span>
+                        <span className="text-xs font-extrabold text-white truncate block" title={carTelemetry.active_route.destination || ""}>
+                          {carTelemetry.active_route.destination}
+                        </span>
+                      </div>
+                      {carTelemetry.active_route.energy_at_arrival !== null && (
+                        <div className="text-right shrink-0 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2 py-1">
+                          <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">À l'arrivée</span>
+                          <span className="text-xs font-mono font-bold text-emerald-400">
+                            {carTelemetry.active_route.energy_at_arrival}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-900">
+                      {carTelemetry.active_route.minutes_to_arrival !== null && (
+                        <div className="bg-slate-900/60 p-2 rounded-lg text-center">
+                          <span className="block text-[8px] uppercase text-slate-500 font-bold mb-0.5">Temps</span>
+                          <span className="text-xs font-mono font-bold text-slate-200">
+                            {carTelemetry.active_route.minutes_to_arrival < 60 
+                              ? `${Math.round(carTelemetry.active_route.minutes_to_arrival)} min`
+                              : `${Math.floor(carTelemetry.active_route.minutes_to_arrival / 60)}h${Math.round(carTelemetry.active_route.minutes_to_arrival % 60)}`
+                            }
+                          </span>
+                        </div>
+                      )}
+                      {carTelemetry.active_route.miles_to_arrival !== null && (
+                        <div className="bg-slate-900/60 p-2 rounded-lg text-center">
+                          <span className="block text-[8px] uppercase text-slate-500 font-bold mb-0.5">Distance</span>
+                          <span className="text-xs font-mono font-bold text-slate-200">
+                            {(carTelemetry.active_route.miles_to_arrival * 1.60934).toFixed(1)} km
+                          </span>
+                        </div>
+                      )}
+                      {carTelemetry.active_route.traffic_minutes_delay !== null && (
+                        <div className="bg-slate-900/60 p-2 rounded-lg text-center">
+                          <span className="block text-[8px] uppercase text-slate-500 font-bold mb-0.5">Trafic</span>
+                          <span className={`text-xs font-mono font-bold ${
+                            carTelemetry.active_route.traffic_minutes_delay > 0 ? "text-amber-400" : "text-emerald-400"
+                          }`}>
+                            {carTelemetry.active_route.traffic_minutes_delay > 0 
+                              ? `+${Math.round(carTelemetry.active_route.traffic_minutes_delay)}m`
+                              : "Fluide"
+                            }
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Odometer */}
             {carTelemetry && carTelemetry.odometer !== null && (
