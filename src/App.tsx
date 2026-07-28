@@ -197,8 +197,8 @@ export default function App() {
       zoomControl: false, // We'll place a custom one or just let users use zoom interactions
     }).setView([46.2276, 2.2137], 6);
 
-    // Use CartoDB Dark Matter tiles (beautiful dark look that emphasizes our glowing tracking marker)
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+    // Use CartoDB Voyager tiles (bright, clear light mode)
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
       attribution: '© OpenStreetMap contributors, © CartoDB',
       maxZoom: 20,
     }).addTo(map);

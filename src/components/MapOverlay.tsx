@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Car, Compass, Navigation, RefreshCw, AlertTriangle, Settings, Radio, Gauge, Battery, Zap, Thermometer, Milestone, MapPin } from "lucide-react";
+import { Car, Compass, Navigation, RefreshCw, AlertTriangle, Settings, Radio, Gauge, Battery, Zap, Thermometer, Milestone, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import { CarLocation, MqttStatus, CarTelemetry } from "../types";
 
 interface MapOverlayProps {
@@ -24,6 +24,7 @@ export default function MapOverlay({
   token,
 }: MapOverlayProps) {
   const [timeAgo, setTimeAgo] = useState<string>("Jamais");
+  const [isMinimized, setIsMinimized] = useState<boolean>(true);
 
   useEffect(() => {
     if (!carLocation) {
@@ -87,22 +88,68 @@ export default function MapOverlay({
       {/* HUD Info Panel */}
       <div className="w-full md:w-auto max-w-sm bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl p-5 shadow-2xl pointer-events-auto flex flex-col gap-4">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-850 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-[#E82127]/15 border border-[#E82127]/30 flex items-center justify-center text-[#E82127]">
+        <div className={`flex items-center justify-between gap-2 ${!isMinimized ? "border-b border-slate-850 pb-3" : ""}`}>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-[#E82127]/15 border border-[#E82127]/30 flex items-center justify-center text-[#E82127] shrink-0">
               <Car className="w-5 h-5 animate-pulse" />
             </div>
-            <div>
-              <h1 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Télémétrie Voiture</h1>
-              <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Données GPS & MQTT</p>
+            <div className="min-w-0">
+              <h1 className="text-xs font-bold text-slate-400 uppercase tracking-widest truncate">Télémétrie Voiture</h1>
+              <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider truncate">
+                {isMinimized && carTelemetry?.speed !== null && carTelemetry?.speed !== undefined
+                  ? `${carTelemetry.speed} km/h • ${carTelemetry.battery_level ?? '--'}%`
+                  : "Données GPS & MQTT"}
+              </p>
             </div>
           </div>
-          {getStatusBadge()}
+          <div className="flex items-center gap-2 shrink-0">
+            {getStatusBadge()}
+            <button
+              onClick={() => setIsMinimized(!isMinimized)}
+              className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/50 transition-colors cursor-pointer"
+              title={isMinimized ? "Agrandir la télémétrie" : "Minimiser la télémétrie"}
+            >
+              {isMinimized ? <ChevronDown className="w-4 h-4 text-[#E82127]" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
+            </button>
+          </div>
         </div>
 
-        {/* Live Coordinate details */}
-        {carLocation ? (
-          <div className="space-y-4">
+        {/* Minimized Quick Summary Bar */}
+        {isMinimized && carLocation && (
+          <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-800/60">
+            <div className="flex items-center gap-3 text-xs font-mono font-bold text-slate-200">
+              {carTelemetry?.speed !== null && carTelemetry?.speed !== undefined && (
+                <span className="flex items-center gap-1">
+                  <Gauge className="w-3.5 h-3.5 text-rose-400" />
+                  {carTelemetry.speed} km/h
+                </span>
+              )}
+              {carTelemetry?.battery_level !== null && carTelemetry?.battery_level !== undefined && (
+                <span className="flex items-center gap-1">
+                  <Battery className="w-3.5 h-3.5 text-emerald-400" />
+                  {carTelemetry.battery_level}%
+                </span>
+              )}
+              {carTelemetry?.shift_state && (
+                <span className="px-1.5 py-0.5 rounded bg-[#E82127] text-white font-black text-[10px]">
+                  {carTelemetry.shift_state}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={onCenter}
+              className="bg-[#E82127] hover:bg-[#ff2b32] active:bg-[#b81216] text-white font-bold text-[10px] uppercase tracking-wider rounded-lg py-1.5 px-3 transition-all flex items-center gap-1 cursor-pointer shrink-0"
+            >
+              <Navigation className="w-3 h-3" />
+              Centrer
+            </button>
+          </div>
+        )}
+
+        {/* Full Telemetry details (Visible when expanded) */}
+        {!isMinimized && (
+          carLocation ? (
+            <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/60">
                 <span className="block text-[9px] uppercase tracking-wider text-slate-500 font-bold mb-1">Latitude</span>
@@ -318,7 +365,7 @@ export default function MapOverlay({
               En attente des premières coordonnées transmises par le traceur GPS.
             </p>
           </div>
-        )}
+        ))}
 
         {/* MQTT Connection Error alert if any */}
         {mqttError && (
