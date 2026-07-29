@@ -61,8 +61,8 @@ jobs:
             cd /root/TeslaLocatorPG
             
             # Télécharger la nouvelle image et relancer
-            #docker compose pull
-            #docker compose up -d --remove-orphans
+            docker compose pull
+            docker compose up -d --remove-orphans
             
             # Nettoyer les anciennes images inutilisées
             ##docker image prune -f
