@@ -58,11 +58,11 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             # Naviguer vers le dossier de votre projet sur le VPS
-            cd /path/to/your/app
+            cd /root/TeslaLocatorPG
             
             # Télécharger la nouvelle image et relancer
-            docker compose pull
-            docker compose up -d --remove-orphans
+            #docker compose pull
+            #docker compose up -d --remove-orphans
             
             # Nettoyer les anciennes images inutilisées
-            docker image prune -f
+            ##docker image prune -f
