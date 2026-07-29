@@ -355,7 +355,6 @@ export default function App() {
             <h1 className="text-sm md:text-base font-bold tracking-tight uppercase text-white">
               Tesla Tracker <span className="text-[#E82127] text-xs font-mono ml-1.5 md:ml-2">v2.2</span>
             </h1>
-            <p className="text-[9px] md:text-[10px] text-slate-400 uppercase tracking-widest">Suivi d'Activité TeslaMate</p>
           </div>
         </div>
 
