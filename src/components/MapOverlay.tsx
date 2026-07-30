@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Car, Compass, Navigation, RefreshCw, AlertTriangle, Settings, Radio, Gauge, Battery, Zap, Thermometer, Milestone, MapPin, ChevronDown, ChevronUp } from "lucide-react";
+import { Car, Compass, Navigation, RefreshCw, AlertTriangle, Settings, Radio, Gauge, Battery, Zap, Thermometer, Milestone, MapPin, ChevronDown, ChevronUp, Disc } from "lucide-react";
 import { CarLocation, MqttStatus, CarTelemetry, UserRole } from "../types";
+import TpmsWidget from "./TpmsWidget";
 
 interface MapOverlayProps {
   carLocation: CarLocation | null;
@@ -85,6 +86,19 @@ export default function MapOverlay({
     }
   };
 
+  const tpmsLowest = carTelemetry?.tpms
+    ? Math.min(
+        ...[
+          carTelemetry.tpms.tpms_pressure_fl,
+          carTelemetry.tpms.tpms_pressure_fr,
+          carTelemetry.tpms.tpms_pressure_rl,
+          carTelemetry.tpms.tpms_pressure_rr,
+        ].filter((val): val is number => val !== null && !isNaN(val))
+      )
+    : null;
+
+  const hasTpmsAlert = tpmsLowest !== null && (tpmsLowest < 2.3 || tpmsLowest > 3.4);
+
   return (
     <div className="absolute inset-x-0 top-0 p-4 z-[1000] flex flex-col md:flex-row justify-between items-start gap-4 pointer-events-none font-sans">
       {/* HUD Info Panel */}
@@ -108,7 +122,11 @@ export default function MapOverlay({
             {getStatusBadge()}
             <button
               onClick={() => setIsMinimized(!isMinimized)}
-              className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/50 transition-colors cursor-pointer"
+              className={`p-1.5 rounded-xl border transition-colors cursor-pointer ${
+                hasTpmsAlert
+                  ? "bg-rose-500/20 text-rose-400 border-rose-500/40 animate-pulse"
+                  : "bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700/50"
+              }`}
               title={isMinimized ? "Agrandir la télémétrie" : "Minimiser la télémétrie"}
             >
               {isMinimized ? <ChevronDown className="w-4 h-4 text-[#E82127]" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
@@ -119,7 +137,7 @@ export default function MapOverlay({
         {/* Minimized Quick Summary Bar */}
         {isMinimized && carLocation && (
           <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-800/60">
-            <div className="flex items-center gap-3 text-xs font-mono font-bold text-slate-200">
+            <div className="flex items-center gap-3 text-xs font-mono font-bold text-slate-200 flex-wrap">
               {carTelemetry?.speed !== null && carTelemetry?.speed !== undefined && (
                 <span className="flex items-center gap-1">
                   <Gauge className="w-3.5 h-3.5 text-rose-400" />
@@ -130,6 +148,14 @@ export default function MapOverlay({
                 <span className="flex items-center gap-1">
                   <Battery className="w-3.5 h-3.5 text-emerald-400" />
                   {carTelemetry.battery_level}%
+                </span>
+              )}
+              {carTelemetry?.tpms && (
+                <span className="flex items-center gap-1 cursor-pointer" onClick={() => setIsMinimized(false)}>
+                  <Disc className={`w-3.5 h-3.5 ${hasTpmsAlert ? "text-rose-400 animate-pulse" : "text-sky-400"}`} />
+                  <span className={hasTpmsAlert ? "text-rose-400 font-extrabold animate-pulse" : "text-slate-300"}>
+                    {tpmsLowest !== null && !isNaN(tpmsLowest) ? `${tpmsLowest.toFixed(1)} bar` : "TPMS"}
+                  </span>
                 </span>
               )}
               {carTelemetry?.shift_state && (
@@ -147,6 +173,7 @@ export default function MapOverlay({
             </button>
           </div>
         )}
+
 
         {/* Full Telemetry details (Visible when expanded) */}
         {!isMinimized && (
@@ -334,6 +361,9 @@ export default function MapOverlay({
                 </span>
               </div>
             )}
+
+            {/* Widget TPMS - Pression des Pneus */}
+            <TpmsWidget tpms={carTelemetry?.tpms || null} />
 
             <div className="flex items-center justify-between text-xs text-slate-400 bg-slate-950/40 p-2.5 rounded-xl border border-slate-850">
               <div className="flex items-center gap-1.5 min-w-0">

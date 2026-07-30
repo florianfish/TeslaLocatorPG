@@ -428,7 +428,7 @@ export default function DebugPanel({
                 <button
                   type="button"
                   onClick={() => {
-                    setPubTopic("teslamate/cars/1/active_route");
+                    setPubTopic("teslamate/cars/1/location");
                     const emptyPreset = {
                       error: "No active route available"
                     };
@@ -438,8 +438,63 @@ export default function DebugPanel({
                 >
                   Pas d'itinéraire actif
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPubTopic("teslamate/cars/1/tpms_pressure_fl");
+                    setPubPayload("2.9");
+                  }}
+                  className="bg-slate-950 hover:bg-slate-800 border border-slate-850 rounded-xl p-2 text-center text-xs font-bold transition-colors cursor-pointer text-sky-400"
+                >
+                  🛞 AV-G à 2.9 bar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPubTopic("teslamate/cars/1/tpms_pressure_rl");
+                    setPubPayload("2.1");
+                  }}
+                  className="bg-slate-950 hover:bg-slate-800 border border-slate-850 rounded-xl p-2 text-center text-xs font-bold transition-colors cursor-pointer text-amber-400"
+                >
+                  ⚠️ AR-G à 2.1 bar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPubTopic("teslamate/cars/1/tpms_soft_warning_rl");
+                    setPubPayload("true");
+                  }}
+                  className="bg-slate-950 hover:bg-slate-800 border border-slate-850 rounded-xl p-2 text-center text-xs font-bold transition-colors cursor-pointer text-rose-400"
+                >
+                  ⚠️ Soft Warning AR-G
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPubTopic("teslamate/cars/1/location");
+                    setPubPayload(JSON.stringify({
+                      tpms_pressure_fl: 2.9,
+                      tpms_pressure_fr: 2.8,
+                      tpms_pressure_rl: 2.9,
+                      tpms_pressure_rr: 2.8,
+                      tpms_soft_warning_fl: false,
+                      tpms_soft_warning_fr: false,
+                      tpms_soft_warning_rl: false,
+                      tpms_soft_warning_rr: false
+                    }, null, 2));
+                  }}
+                  className="bg-slate-950 hover:bg-slate-800 border border-slate-850 rounded-xl p-2 text-center text-xs font-bold transition-colors cursor-pointer text-emerald-400"
+                >
+                  🚗 Pack 4 Pneus OK
+                </button>
               </div>
             </div>
+
+
 
             {/* Custom publishing form */}
             <form onSubmit={handlePublish} className="space-y-4 pt-2 border-t border-slate-850">

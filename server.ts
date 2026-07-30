@@ -81,6 +81,16 @@ let carTelemetry = {
   outside_temp: null as number | null,
   shift_state: null as string | null,
   active_route: null as any,
+  tpms: null as {
+    tpms_pressure_fl: number | null;
+    tpms_pressure_fr: number | null;
+    tpms_pressure_rl: number | null;
+    tpms_pressure_rr: number | null;
+    tpms_soft_warning_fl?: boolean | null;
+    tpms_soft_warning_fr?: boolean | null;
+    tpms_soft_warning_rl?: boolean | null;
+    tpms_soft_warning_rr?: boolean | null;
+  } | null,
 };
 
 // Track all active topics and their latest details
@@ -239,7 +249,15 @@ function connectMqtt() {
           `teslamate/cars/${carId}/odometer`,
           `teslamate/cars/${carId}/outside_temp`,
           `teslamate/cars/${carId}/shift_state`,
-          `teslamate/cars/${carId}/active_route`
+          `teslamate/cars/${carId}/active_route`,
+          `teslamate/cars/${carId}/tpms_pressure_fl`,
+          `teslamate/cars/${carId}/tpms_pressure_fr`,
+          `teslamate/cars/${carId}/tpms_pressure_rl`,
+          `teslamate/cars/${carId}/tpms_pressure_rr`,
+          `teslamate/cars/${carId}/tpms_soft_warning_fl`,
+          `teslamate/cars/${carId}/tpms_soft_warning_fr`,
+          `teslamate/cars/${carId}/tpms_soft_warning_rl`,
+          `teslamate/cars/${carId}/tpms_soft_warning_rr`
         );
       }
 
@@ -276,7 +294,7 @@ function connectMqtt() {
       };
 
       // Check if this topic belongs to any of the telemetry fields
-      const carIdMatch = topic.match(/^teslamate\/cars\/([^/]+)\/(speed|state|battery_level|odometer|outside_temp|shift_state|active_route)$/);
+      const carIdMatch = topic.match(/^teslamate\/cars\/([^/]+)\/(speed|state|battery_level|odometer|outside_temp|shift_state|active_route|tpms_pressure_fl|tpms_pressure_fr|tpms_pressure_rl|tpms_pressure_rr|tpms_soft_warning_fl|tpms_soft_warning_fr|tpms_soft_warning_rl|tpms_soft_warning_rr)$/);
       if (carIdMatch) {
         const subTopicType = carIdMatch[2];
         const parsedVal = parseValue(rawPayload);
@@ -292,6 +310,8 @@ function connectMqtt() {
           carTelemetry.outside_temp = typeof parsedVal === "number" ? parsedVal : parseFloat(parsedVal);
         } else if (subTopicType === "shift_state") {
           carTelemetry.shift_state = String(parsedVal);
+        } else if (subTopicType.startsWith("tpms_")) {
+          applyTpmsData(parsedVal, subTopicType);
         } else if (subTopicType === "active_route") {
           if (typeof parsedVal === "object" && parsedVal !== null) {
             carTelemetry.active_route = parsedVal;
@@ -327,6 +347,7 @@ function connectMqtt() {
             if (parsed.outside_temp !== undefined) carTelemetry.outside_temp = Number(parsed.outside_temp);
             if (parsed.shift_state !== undefined) carTelemetry.shift_state = String(parsed.shift_state);
             if (parsed.active_route !== undefined) carTelemetry.active_route = parsed.active_route;
+            applyTpmsData(parsed);
           }
         } catch {}
       }
@@ -473,6 +494,57 @@ setInterval(() => {
   });
 }, 10000);
 
+// Helper function to update TPMS state safely
+function applyTpmsData(parsedVal: any, subTopicType?: string) {
+  if (!carTelemetry.tpms) {
+    carTelemetry.tpms = {
+      tpms_pressure_fl: null,
+      tpms_pressure_fr: null,
+      tpms_pressure_rl: null,
+      tpms_pressure_rr: null,
+      tpms_soft_warning_fl: null,
+      tpms_soft_warning_fr: null,
+      tpms_soft_warning_rl: null,
+      tpms_soft_warning_rr: null,
+    };
+  }
+
+  if (typeof parsedVal === "object" && parsedVal !== null) {
+    if (parsedVal.tpms_pressure_fl !== undefined) carTelemetry.tpms.tpms_pressure_fl = Number(parsedVal.tpms_pressure_fl);
+    if (parsedVal.tpms_pressure_fr !== undefined) carTelemetry.tpms.tpms_pressure_fr = Number(parsedVal.tpms_pressure_fr);
+    if (parsedVal.tpms_pressure_rl !== undefined) carTelemetry.tpms.tpms_pressure_rl = Number(parsedVal.tpms_pressure_rl);
+    if (parsedVal.tpms_pressure_rr !== undefined) carTelemetry.tpms.tpms_pressure_rr = Number(parsedVal.tpms_pressure_rr);
+
+    if (parsedVal.tpms_soft_warning_fl !== undefined) carTelemetry.tpms.tpms_soft_warning_fl = Boolean(parsedVal.tpms_soft_warning_fl);
+    if (parsedVal.tpms_soft_warning_fr !== undefined) carTelemetry.tpms.tpms_soft_warning_fr = Boolean(parsedVal.tpms_soft_warning_fr);
+    if (parsedVal.tpms_soft_warning_rl !== undefined) carTelemetry.tpms.tpms_soft_warning_rl = Boolean(parsedVal.tpms_soft_warning_rl);
+    if (parsedVal.tpms_soft_warning_rr !== undefined) carTelemetry.tpms.tpms_soft_warning_rr = Boolean(parsedVal.tpms_soft_warning_rr);
+
+    if (parsedVal.fl !== undefined) carTelemetry.tpms.tpms_pressure_fl = Number(parsedVal.fl);
+    if (parsedVal.fr !== undefined) carTelemetry.tpms.tpms_pressure_fr = Number(parsedVal.fr);
+    if (parsedVal.rl !== undefined) carTelemetry.tpms.tpms_pressure_rl = Number(parsedVal.rl);
+    if (parsedVal.rr !== undefined) carTelemetry.tpms.tpms_pressure_rr = Number(parsedVal.rr);
+
+    if (subTopicType && parsedVal[subTopicType] !== undefined) {
+      if (subTopicType.startsWith("tpms_soft_warning_")) {
+        (carTelemetry.tpms as any)[subTopicType] = Boolean(parsedVal[subTopicType]);
+      } else {
+        (carTelemetry.tpms as any)[subTopicType] = Number(parsedVal[subTopicType]);
+      }
+    }
+  } else if (subTopicType) {
+    if (subTopicType.startsWith("tpms_pressure_")) {
+      const pressVal = typeof parsedVal === "number" ? parsedVal : parseFloat(String(parsedVal));
+      if (!isNaN(pressVal)) {
+        (carTelemetry.tpms as any)[subTopicType] = pressVal;
+      }
+    } else if (subTopicType.startsWith("tpms_soft_warning_")) {
+      const boolVal = parsedVal === true || String(parsedVal).toLowerCase() === "true";
+      (carTelemetry.tpms as any)[subTopicType] = boolVal;
+    }
+  }
+}
+
 // Support publishing custom coordinates for testing / simulation
 app.post("/api/test-publish", (req, res) => {
   const { token } = req.query;
@@ -492,113 +564,111 @@ app.post("/api/test-publish", (req, res) => {
     mqttClient.publish(topic, payloadStr, { qos: 0, retain: false }, (err) => {
       if (err) {
         console.error("Failed to publish test message to MQTT broker:", err);
-        return res.status(500).json({ error: "Failed to publish: " + err.message });
       }
-      return res.json({ success: true, message: "Published successfully to MQTT broker!" });
-    });
-  } else {
-    // If not connected to a live broker, simulate receiving the message locally so the user can still test the UI!
-    console.log(`[Simulating MQTT Local Message] topic: ${topic}, payload: ${payloadStr}`);
-    
-    const timestamp = Date.now();
-    const parsedGps = parseGps(payloadStr);
-
-    topicsMap.set(topic, {
-      payload: payloadStr,
-      timestamp,
-      parsedGps: parsedGps || undefined,
-    });
-
-    // Helper to parse scalar values
-    const parseValue = (val: string) => {
-      const trimmed = val.trim();
-      try {
-        return JSON.parse(trimmed);
-      } catch {
-        const num = Number(trimmed);
-        return isNaN(num) ? trimmed : num;
-      }
-    };
-
-    // Check if this topic belongs to any of the telemetry fields
-    const carIdMatch = topic.match(/^teslamate\/cars\/([^/]+)\/(speed|state|battery_level|odometer|outside_temp|shift_state|active_route)$/);
-    if (carIdMatch) {
-      const subTopicType = carIdMatch[2];
-      const parsedVal = parseValue(payloadStr);
-      if (subTopicType === "speed") {
-        carTelemetry.speed = typeof parsedVal === "number" ? parsedVal : parseInt(parsedVal, 10);
-      } else if (subTopicType === "state") {
-        carTelemetry.state = String(parsedVal);
-      } else if (subTopicType === "battery_level") {
-        carTelemetry.battery_level = typeof parsedVal === "number" ? parsedVal : parseInt(parsedVal, 10);
-      } else if (subTopicType === "odometer") {
-        carTelemetry.odometer = typeof parsedVal === "number" ? parsedVal : parseFloat(parsedVal);
-      } else if (subTopicType === "outside_temp") {
-        carTelemetry.outside_temp = typeof parsedVal === "number" ? parsedVal : parseFloat(parsedVal);
-      } else if (subTopicType === "shift_state") {
-        carTelemetry.shift_state = String(parsedVal);
-      } else if (subTopicType === "active_route") {
-        if (typeof parsedVal === "object" && parsedVal !== null) {
-          carTelemetry.active_route = parsedVal;
-        } else {
-          try {
-            carTelemetry.active_route = JSON.parse(String(parsedVal));
-          } catch {
-            carTelemetry.active_route = { error: String(parsedVal) };
-          }
-        }
-      }
-    }
-
-    if (parsedGps) {
-      carLocation = {
-        lat: parsedGps.lat,
-        lon: parsedGps.lon,
-        timestamp,
-        topic,
-        rawPayload: payloadStr,
-      };
-
-      // Extract extra telemetry parameters if they happen to be part of the location JSON payload
-      try {
-        const parsed = JSON.parse(payloadStr);
-        if (parsed && typeof parsed === "object") {
-          if (parsed.speed !== undefined) carTelemetry.speed = Number(parsed.speed);
-          if (parsed.battery_level !== undefined) carTelemetry.battery_level = Number(parsed.battery_level);
-          if (parsed.state !== undefined) carTelemetry.state = String(parsed.state);
-          if (parsed.odometer !== undefined) carTelemetry.odometer = Number(parsed.odometer);
-          if (parsed.outside_temp !== undefined) carTelemetry.outside_temp = Number(parsed.outside_temp);
-          if (parsed.shift_state !== undefined) carTelemetry.shift_state = String(parsed.shift_state);
-          if (parsed.active_route !== undefined) carTelemetry.active_route = parsed.active_route;
-        }
-      } catch {}
-    }
-
-    const logEntry = {
-      id: Math.random().toString(36).substring(2, 9),
-      topic,
-      payload: payloadStr,
-      timestamp,
-      parsedGps: parsedGps || undefined,
-    };
-    messageLogs.unshift(logEntry);
-    if (messageLogs.length > 50) {
-      messageLogs.pop();
-    }
-
-    broadcast({
-      type: "message",
-      message: logEntry,
-      carLocation,
-      carTelemetry,
-      topics: Array.from(topicsMap.entries()),
-    });
-
-    return res.json({
-      success: true,
-      message: "Simulated message locally (MQTT client is currently offline or disconnected)."
     });
   }
+
+  console.log(`[Processing Test Message] topic: ${topic}, payload: ${payloadStr}`);
+  
+  const timestamp = Date.now();
+  const parsedGps = parseGps(payloadStr);
+
+  topicsMap.set(topic, {
+    payload: payloadStr,
+    timestamp,
+    parsedGps: parsedGps || undefined,
+  });
+
+  const parseValue = (val: string) => {
+    const trimmed = val.trim();
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      const num = Number(trimmed);
+      return isNaN(num) ? trimmed : num;
+    }
+  };
+
+  const carIdMatch = topic.match(/^teslamate\/cars\/([^/]+)\/(speed|state|battery_level|odometer|outside_temp|shift_state|active_route|tpms_pressure_fl|tpms_pressure_fr|tpms_pressure_rl|tpms_pressure_rr|tpms_soft_warning_fl|tpms_soft_warning_fr|tpms_soft_warning_rl|tpms_soft_warning_rr)$/);
+  if (carIdMatch) {
+    const subTopicType = carIdMatch[2];
+    const parsedVal = parseValue(payloadStr);
+    if (subTopicType === "speed") {
+      carTelemetry.speed = typeof parsedVal === "number" ? parsedVal : parseInt(parsedVal, 10);
+    } else if (subTopicType === "state") {
+      carTelemetry.state = String(parsedVal);
+    } else if (subTopicType === "battery_level") {
+      carTelemetry.battery_level = typeof parsedVal === "number" ? parsedVal : parseInt(parsedVal, 10);
+    } else if (subTopicType === "odometer") {
+      carTelemetry.odometer = typeof parsedVal === "number" ? parsedVal : parseFloat(parsedVal);
+    } else if (subTopicType === "outside_temp") {
+      carTelemetry.outside_temp = typeof parsedVal === "number" ? parsedVal : parseFloat(parsedVal);
+    } else if (subTopicType === "shift_state") {
+      carTelemetry.shift_state = String(parsedVal);
+    } else if (subTopicType.startsWith("tpms_")) {
+      applyTpmsData(parsedVal, subTopicType);
+    } else if (subTopicType === "active_route") {
+      if (typeof parsedVal === "object" && parsedVal !== null) {
+        carTelemetry.active_route = parsedVal;
+      } else {
+        try {
+          carTelemetry.active_route = JSON.parse(String(parsedVal));
+        } catch {
+          carTelemetry.active_route = { error: String(parsedVal) };
+        }
+      }
+    }
+  }
+
+  if (parsedGps) {
+    carLocation = {
+      lat: parsedGps.lat,
+      lon: parsedGps.lon,
+      timestamp,
+      topic,
+      rawPayload: payloadStr,
+    };
+
+    try {
+      const parsed = JSON.parse(payloadStr);
+      if (parsed && typeof parsed === "object") {
+        if (parsed.speed !== undefined) carTelemetry.speed = Number(parsed.speed);
+        if (parsed.battery_level !== undefined) carTelemetry.battery_level = Number(parsed.battery_level);
+        if (parsed.state !== undefined) carTelemetry.state = String(parsed.state);
+        if (parsed.odometer !== undefined) carTelemetry.odometer = Number(parsed.odometer);
+        if (parsed.outside_temp !== undefined) carTelemetry.outside_temp = Number(parsed.outside_temp);
+        if (parsed.shift_state !== undefined) carTelemetry.shift_state = String(parsed.shift_state);
+        if (parsed.active_route !== undefined) carTelemetry.active_route = parsed.active_route;
+        applyTpmsData(parsed);
+      }
+    } catch {}
+  }
+
+  const logEntry = {
+    id: Math.random().toString(36).substring(2, 9),
+    topic,
+    payload: payloadStr,
+    timestamp,
+    parsedGps: parsedGps || undefined,
+  };
+  messageLogs.unshift(logEntry);
+  if (messageLogs.length > 50) {
+    messageLogs.pop();
+  }
+
+  broadcast({
+    type: "message",
+    message: logEntry,
+    carLocation,
+    carTelemetry,
+    topics: Array.from(topicsMap.entries()),
+  });
+
+  return res.json({
+    success: true,
+    message: "Message simulé et diffusé avec succès aux clients !"
+  });
+
 });
 
 // ================= VITE ASSET HANDLING =================

@@ -49,6 +49,18 @@ export interface ActiveRoute {
   error: string | null;
 }
 
+export interface TpmsData {
+  tpms_pressure_fl: number | null;
+  tpms_pressure_fr: number | null;
+  tpms_pressure_rl: number | null;
+  tpms_pressure_rr: number | null;
+  tpms_soft_warning_fl?: boolean | null;
+  tpms_soft_warning_fr?: boolean | null;
+  tpms_soft_warning_rl?: boolean | null;
+  tpms_soft_warning_rr?: boolean | null;
+}
+
+
 export interface CarTelemetry {
   speed: number | null;
   battery_level: number | null;
@@ -57,4 +69,6 @@ export interface CarTelemetry {
   outside_temp: number | null;
   shift_state: string | null;
   active_route: ActiveRoute | null;
+  tpms: TpmsData | null;
 }
+
