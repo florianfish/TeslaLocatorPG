@@ -1,75 +1,90 @@
 # Tesla Tracker 🚗📍
 
-Application moderne de suivi et de géolocalisation de véhicule (Tesla) en temps réel, s'interfaçant avec **TeslaMate** via **MQTT**, avec une interface web interactive et un accès sécurisé par jeton d'accès.
+Application moderne de suivi et de géolocalisation de véhicule (Tesla) en temps réel, s'interfaçant avec **TeslaMate** via **MQTT**, avec une carte interactive (Leaflet), télémétrie en direct (SSE) et accès sécurisé par jeton.
 
 ---
 
 ## 🛠️ Prérequis
 
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+- **Mode Développement** : [Node.js](https://nodejs.org/) (v20+) et `npm`
+- **Mode Docker / Production** : [Docker](https://docs.docker.com/get-docker/) et [Docker Compose](https://docs.docker.com/compose/install/)
 
 ---
 
-## 🚀 Lancement rapide
+## 🚀 Démarrage
 
-1. **Configurer l'environnement** :
-   Copiez le fichier d'exemple et remplissez-le avec vos identifiants MQTT, l'URL de votre application, et votre clé API Gemini si nécessaire.
-   ```bash
-   cp .env.example .env
-   ```
-   Renseignez les variables suivantes dans le fichier `.env` :
-   - `MQTT_BROKER_URL` : L'adresse de votre broker MQTT (ex: `mqtt://192.168.1.100:1883`).
-   - `MQTT_USERNAME` & `MQTT_PASSWORD` : Identifiants MQTT si requis.
-   - `SECURE_ACCESS_TOKEN` : Un jeton de sécurité de votre choix (ex: `mon_super_token_secret`).
+### 1. Configurer l'environnement
 
-2. **Démarrer l'application** :
-   Lancez le conteneur en arrière-plan :
-   ```bash
-   docker compose up -d
-   ```
+Copiez le fichier d'exemple et remplissez-le avec vos identifiants MQTT et votre jeton de sécurité :
+```bash
+cp .env.example .env
+```
 
-3. **Accéder à l'application** :
-   L'application est accessible à l'adresse `http://localhost:3000`.
-   
-   ⚠️ **Sécurité** : Pour accéder à la carte de suivi, vous devez passer le jeton sécurisé configuré dans votre `.env` en paramètre GET :
-   `http://localhost:3000/?token=votre_secure_access_token_here`
+Variables principales dans `.env` :
+- `SECURE_ACCESS_TOKEN` : Jeton d'accès requis pour la carte (ex: `mon_token_secret`).
+- `MQTT_BROKER_URL` : Adresse de votre broker MQTT (ex: `mqtt://192.168.1.100:1883`).
+- `MQTT_USERNAME` & `MQTT_PASSWORD` : Identifiants de connexion MQTT.
+- `MQTT_TOPIC` : Topic du composant GPS (ex: `teslamate/cars/1/location`).
 
 ---
 
-## 🔄 Comment appliquer les changements ?
+### 💻 Mode Développement (Hot Reload en direct)
 
-### 1. Modification du code source (ex: titre, fichiers React, serveur backend)
-Puisque le code est compilé et packagé dans l'image Docker, toute modification du code nécessite de **reconstruire l'image**.
+Idéal pour apporter des modifications au code source (`src/` ou `server.ts`) avec rechargement instantané sans recontruire de conteneur.
 
-Pour reconstruire l'image et redémarrer le service avec le nouveau code, exécutez :
+1. Installez les dépendances :
+   ```bash
+   npm install
+   ```
+2. Lancez le serveur de développement :
+   ```bash
+   npm run dev
+   ```
+3. Accédez à l'application : `http://localhost:3000`
+
+---
+
+### 🐳 Mode Docker (Production / Déploiement)
+
+#### A. Utilisation du code local (Build local)
+Dans [docker-compose.yml](file:///c:/projects/TeslaLocatorPG/docker-compose.yml), utilisez la configuration `build: .` pour prendre en compte vos fichiers locaux :
 ```bash
 docker compose up --build -d
 ```
 
-### 2. Modification des variables d'environnement (`.env`)
-Si vous modifiez uniquement le fichier `.env` (comme changer le mot de passe MQTT, l'URL de l'application ou le token d'accès), vous n'avez **pas besoin de reconstruire l'image**.
-
-Il vous suffit de recréer le conteneur pour qu'il lise les nouvelles variables :
+#### B. Utilisation de l'image GHCR pré-construite
+Si vous utilisez la version distante publiée :
 ```bash
-docker compose down && docker compose up -d
-```
-*Alternative rapide* :
-```bash
-docker compose restart
+docker compose up -d
 ```
 
-### 3. Nettoyer les anciennes images inutilisées (optionnel)
-Après plusieurs reconstructions, des images obsolètes peuvent s'accumuler. Vous pouvez les nettoyer avec :
-```bash
-docker image prune -f
-```
+---
+
+## 🔐 Sécurité & Jeton d'Accès
+
+L'accès à l'application est protégé par le jeton défini dans `SECURE_ACCESS_TOKEN`.
+
+Vous pouvez vous authentifier de deux manières :
+1. **Sur l'écran d'accueil** : Saisissez simplement votre jeton dans le formulaire de connexion.
+2. **Via l'URL** : Ajoutez le paramètre `token` dans votre navigateur :
+   `http://localhost:3000/?token=VOTRE_TOKEN_ICI`
+
+---
+
+## 🔄 Mise à jour et Maintenance
+
+- **Appliquer un changement de code en Docker** : `docker compose up --build -d`
+- **Changement dans le fichier `.env`** : `docker compose restart`
+- **Nettoyage des images Docker obsolètes** : `docker image prune -f`
 
 ---
 
 ## 📁 Structure du projet
 
-- `Dockerfile` : Configuration du build multi-étape pour une image Node.js ultra-légère et optimisée pour la production.
-- `docker-compose.yml` : Fichier d'orchestration pour lancer l'application avec redémarrage automatique et injection sécurisée de l'environnement.
-- `server.ts` : Serveur d'API Express faisant office de proxy MQTT sécurisé.
-- `src/` : Application frontend développée en React, Vite, Tailwind CSS et Leaflet.
+- `server.ts` : Serveur Express + Proxy MQTT + Serveur d'événements SSE + Middleware Vite en dev.
+- `src/` : Application React 19, Leaflet, Tailwind CSS & composants UI.
+  - `src/App.tsx` : Composant principal (gestion auth, Leaflet map, flux SSE).
+  - `src/components/` : Composants UI (`SecureLogin`, `MapOverlay`, `DebugPanel`).
+- `docker-compose.yml` : Configuration Docker Compose.
+- `Dockerfile` : Multi-stage build Node.js ultra-léger (Alpine).
+- `AGENTS.md` : Guide d'architecture et consignes pour les agents IA.
