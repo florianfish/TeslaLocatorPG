@@ -13,12 +13,12 @@ const PORT = 3000;
 app.use(express.json());
 
 // Secrets & Token configuration
-const SECURE_ACCESS_TOKEN = process.env.SECURE_ACCESS_TOKEN || "xxxxxxxxxxx";
+const SECURE_ACCESS_TOKEN = process.env.SECURE_ACCESS_TOKEN || "";
 
 // MQTT Configuration
-const rawBrokerUrl = process.env.MQTT_BROKER_URL || "mqtt://xxx.xxx.xxx.xxx:1883";
-const MQTT_USERNAME = process.env.MQTT_USERNAME || "xxxxx";
-const MQTT_PASSWORD = process.env.MQTT_PASSWORD || "xxxxx";
+const rawBrokerUrl = process.env.MQTT_BROKER_URL || "";
+const MQTT_USERNAME = process.env.MQTT_USERNAME || "";
+const MQTT_PASSWORD = process.env.MQTT_PASSWORD || "";
 const MQTT_TOPIC = process.env.MQTT_TOPIC || "teslamate/cars/1/location";
 
 // Resolve connection scheme
@@ -29,7 +29,11 @@ if (brokerUrl.startsWith("http://")) {
   brokerUrl = "mqtts://" + brokerUrl.substring(8);
 }
 
-console.log(`Configured MQTT connection: ${brokerUrl} as user: ${MQTT_USERNAME}`);
+if (brokerUrl) {
+  console.log(`Configured MQTT connection: ${brokerUrl} as user: ${MQTT_USERNAME}`);
+} else {
+  console.warn("WARNING: MQTT_BROKER_URL is not defined in environment variables.");
+}
 
 // Server memory storage
 let mqttStatus = "disconnected";
@@ -170,6 +174,13 @@ function parseGps(payloadStr: string): { lat: number; lon: number } | null {
 let mqttClient: mqtt.MqttClient | null = null;
 
 function connectMqtt() {
+  if (!brokerUrl) {
+    console.warn("MQTT broker URL is missing. Skipping connection.");
+    mqttStatus = "disconnected";
+    mqttError = "Broker URL non configuré dans .env";
+    return;
+  }
+
   console.log(`Connecting to MQTT broker at ${brokerUrl}...`);
   mqttStatus = "connecting";
   mqttError = null;

@@ -35,7 +35,7 @@ npm install
 # 2. Run dev server (Express + Vite Middleware with HMR)
 npm run dev
 ```
-- **URL**: `http://localhost:3000/?token=@qhePbLY*dP39jehN%Yr` (or whatever `SECURE_ACCESS_TOKEN` is set to in `.env`).
+- **URL**: `http://localhost:3000/?token=VOTRE_SECURE_ACCESS_TOKEN` (ou la valeur de `SECURE_ACCESS_TOKEN` dans `.env`).
 
 ### Build & Production
 ```bash

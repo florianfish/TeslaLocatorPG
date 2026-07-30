@@ -338,7 +338,7 @@ export default function App() {
     );
   }
 
-  const formattedBroker = brokerUrl ? brokerUrl.replace(/^mqtts?:\/\//, "") : "xxx.xxx.xxx.xxx:1883";
+  const formattedBroker = brokerUrl ? brokerUrl.replace(/^mqtts?:\/\//, "") : "Non configuré";
 
   return (
     <div className="w-screen h-screen bg-slate-950 text-slate-100 font-sans flex flex-col overflow-hidden select-none">
