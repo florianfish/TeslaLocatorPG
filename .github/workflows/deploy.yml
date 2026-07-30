@@ -35,6 +35,10 @@ jobs:
             type=raw,value=latest
             type=sha
 
+      - name: Set short git SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -42,6 +46,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=v2.2.${{ github.run_number }} (${{ steps.vars.outputs.sha_short }})
 
   deploy:
     needs: build-and-push

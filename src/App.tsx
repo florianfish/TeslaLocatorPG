@@ -21,6 +21,7 @@ export default function App() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // App & Broker configuration
+  const [appVersion, setAppVersion] = useState<string>("v2.2");
   const [brokerUrl, setBrokerUrl] = useState<string>("");
   const [topicConfig, setTopicConfig] = useState<string>("");
 
@@ -63,6 +64,7 @@ export default function App() {
         if (data.authorized) {
           setAuthorized(true);
           setUserRole(data.role || "admin");
+          if (data.version) setAppVersion(data.version);
           setBrokerUrl(data.brokerUrl);
           setTopicConfig(data.topicConfig);
           // Persist token for future sessions
@@ -371,7 +373,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-sm md:text-base font-bold tracking-tight uppercase text-white">
-              Tesla Tracker <span className="text-[#E82127] text-xs font-mono ml-1.5 md:ml-2">v2.2</span>
+              Tesla Tracker <span className="text-[#E82127] text-xs font-mono ml-1.5 md:ml-2">{appVersion}</span>
             </h1>
           </div>
         </div>

@@ -2,7 +2,22 @@ import express from "express";
 import path from "path";
 import dotenv from "dotenv";
 import mqtt from "mqtt";
+import { execSync } from "child_process";
 import { createServer as createViteServer } from "vite";
+
+// Automatic version detection helper
+function getAppVersion(): string {
+  if (process.env.APP_VERSION) {
+    return process.env.APP_VERSION;
+  }
+  try {
+    const commitCount = execSync("git rev-list --count HEAD", { stdio: ["pipe", "pipe", "ignore"] }).toString().trim();
+    const shortHash = execSync("git rev-parse --short HEAD", { stdio: ["pipe", "pipe", "ignore"] }).toString().trim();
+    return `v2.2.${commitCount} (${shortHash})`;
+  } catch {
+    return "v2.2.0";
+  }
+}
 
 // Load environment variables
 dotenv.config();
@@ -379,6 +394,7 @@ app.get("/api/config", (req, res) => {
   res.json({
     authorized: isValid,
     role: role || undefined,
+    version: getAppVersion(),
     brokerUrl: rawBrokerUrl,
     topicConfig: MQTT_TOPIC,
     defaultLocation: { lat: 46.2276, lon: 2.2137 } // Center of France

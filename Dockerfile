@@ -21,8 +21,10 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 # Set production environment
+ARG APP_VERSION
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV APP_VERSION=$APP_VERSION
 
 # Copy package descriptors
 COPY package.json package-lock.json* ./
