@@ -8,6 +8,14 @@ export interface CarLocation {
   rawPayload: string;
 }
 
+export interface BreadcrumbPoint {
+  lat: number;
+  lon: number;
+  timestamp: number;
+  speed: number | null;
+}
+
+
 export type TopicEntry = [
   string, // topic name
   {
