@@ -46,6 +46,10 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+
     steps:
       - name: Deploy via SSH to VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -54,15 +58,15 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            # Connexion au registre GitHub sur le VPS
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            # Connexion au registre GitHub sur le VPS avec le PAT de sécurité
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # Naviguer vers le dossier de votre projet sur le VPS
-            cd /root/TeslaLocatorPG
+            # Naviguer vers le dossier du projet sur le VPS
+            cd /root/tracker
             
-            # Télécharger la nouvelle image et relancer
+            # Télécharger la nouvelle image et relancer le conteneur
             docker compose pull
             docker compose up -d --remove-orphans
             
-            # Nettoyer les anciennes images inutilisées
-            ##docker image prune -f
+            # Nettoyer les anciennes images obsolètes pour libérer de l'espace
+            docker image prune -f
