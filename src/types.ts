@@ -76,6 +76,7 @@ export interface CarTelemetry {
   odometer: number | null;
   outside_temp: number | null;
   shift_state: string | null;
+  sentry_mode: boolean | null;
   active_route: ActiveRoute | null;
   tpms: TpmsData | null;
 }

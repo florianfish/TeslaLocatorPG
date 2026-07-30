@@ -80,6 +80,7 @@ let carTelemetry = {
   odometer: null as number | null,
   outside_temp: null as number | null,
   shift_state: null as string | null,
+  sentry_mode: null as boolean | null,
   active_route: null as any,
   tpms: null as {
     tpms_pressure_fl: number | null;
@@ -249,6 +250,7 @@ function connectMqtt() {
           `teslamate/cars/${carId}/odometer`,
           `teslamate/cars/${carId}/outside_temp`,
           `teslamate/cars/${carId}/shift_state`,
+          `teslamate/cars/${carId}/sentry_mode`,
           `teslamate/cars/${carId}/active_route`,
           `teslamate/cars/${carId}/tpms_pressure_fl`,
           `teslamate/cars/${carId}/tpms_pressure_fr`,
@@ -294,7 +296,7 @@ function connectMqtt() {
       };
 
       // Check if this topic belongs to any of the telemetry fields
-      const carIdMatch = topic.match(/^teslamate\/cars\/([^/]+)\/(speed|state|battery_level|odometer|outside_temp|shift_state|active_route|tpms_pressure_fl|tpms_pressure_fr|tpms_pressure_rl|tpms_pressure_rr|tpms_soft_warning_fl|tpms_soft_warning_fr|tpms_soft_warning_rl|tpms_soft_warning_rr)$/);
+      const carIdMatch = topic.match(/^teslamate\/cars\/([^/]+)\/(speed|state|battery_level|odometer|outside_temp|shift_state|sentry_mode|active_route|tpms_pressure_fl|tpms_pressure_fr|tpms_pressure_rl|tpms_pressure_rr|tpms_soft_warning_fl|tpms_soft_warning_fr|tpms_soft_warning_rl|tpms_soft_warning_rr)$/);
       if (carIdMatch) {
         const subTopicType = carIdMatch[2];
         const parsedVal = parseValue(rawPayload);
@@ -310,6 +312,8 @@ function connectMqtt() {
           carTelemetry.outside_temp = typeof parsedVal === "number" ? parsedVal : parseFloat(parsedVal);
         } else if (subTopicType === "shift_state") {
           carTelemetry.shift_state = String(parsedVal);
+        } else if (subTopicType === "sentry_mode") {
+          carTelemetry.sentry_mode = parsedVal === true || String(parsedVal).toLowerCase() === "true";
         } else if (subTopicType.startsWith("tpms_")) {
           applyTpmsData(parsedVal, subTopicType);
         } else if (subTopicType === "active_route") {
@@ -346,6 +350,7 @@ function connectMqtt() {
             if (parsed.odometer !== undefined) carTelemetry.odometer = Number(parsed.odometer);
             if (parsed.outside_temp !== undefined) carTelemetry.outside_temp = Number(parsed.outside_temp);
             if (parsed.shift_state !== undefined) carTelemetry.shift_state = String(parsed.shift_state);
+            if (parsed.sentry_mode !== undefined) carTelemetry.sentry_mode = parsed.sentry_mode === true || String(parsed.sentry_mode).toLowerCase() === "true";
             if (parsed.active_route !== undefined) carTelemetry.active_route = parsed.active_route;
             applyTpmsData(parsed);
           }
@@ -589,7 +594,7 @@ app.post("/api/test-publish", (req, res) => {
     }
   };
 
-  const carIdMatch = topic.match(/^teslamate\/cars\/([^/]+)\/(speed|state|battery_level|odometer|outside_temp|shift_state|active_route|tpms_pressure_fl|tpms_pressure_fr|tpms_pressure_rl|tpms_pressure_rr|tpms_soft_warning_fl|tpms_soft_warning_fr|tpms_soft_warning_rl|tpms_soft_warning_rr)$/);
+  const carIdMatch = topic.match(/^teslamate\/cars\/([^/]+)\/(speed|state|battery_level|odometer|outside_temp|shift_state|sentry_mode|active_route|tpms_pressure_fl|tpms_pressure_fr|tpms_pressure_rl|tpms_pressure_rr|tpms_soft_warning_fl|tpms_soft_warning_fr|tpms_soft_warning_rl|tpms_soft_warning_rr)$/);
   if (carIdMatch) {
     const subTopicType = carIdMatch[2];
     const parsedVal = parseValue(payloadStr);
@@ -605,6 +610,8 @@ app.post("/api/test-publish", (req, res) => {
       carTelemetry.outside_temp = typeof parsedVal === "number" ? parsedVal : parseFloat(parsedVal);
     } else if (subTopicType === "shift_state") {
       carTelemetry.shift_state = String(parsedVal);
+    } else if (subTopicType === "sentry_mode") {
+      carTelemetry.sentry_mode = parsedVal === true || String(parsedVal).toLowerCase() === "true";
     } else if (subTopicType.startsWith("tpms_")) {
       applyTpmsData(parsedVal, subTopicType);
     } else if (subTopicType === "active_route") {
@@ -638,6 +645,7 @@ app.post("/api/test-publish", (req, res) => {
         if (parsed.odometer !== undefined) carTelemetry.odometer = Number(parsed.odometer);
         if (parsed.outside_temp !== undefined) carTelemetry.outside_temp = Number(parsed.outside_temp);
         if (parsed.shift_state !== undefined) carTelemetry.shift_state = String(parsed.shift_state);
+        if (parsed.sentry_mode !== undefined) carTelemetry.sentry_mode = parsed.sentry_mode === true || String(parsed.sentry_mode).toLowerCase() === "true";
         if (parsed.active_route !== undefined) carTelemetry.active_route = parsed.active_route;
         applyTpmsData(parsed);
       }

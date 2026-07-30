@@ -129,6 +129,12 @@ export default function MapOverlay({
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {carTelemetry?.sentry_mode && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.3)] animate-pulse" title="Mode Sentinelle Actif">
+                <Eye className="w-3.5 h-3.5 text-rose-400" />
+                Sentinelle
+              </span>
+            )}
             {getStatusBadge()}
             <button
               onClick={() => setIsMinimized(!isMinimized)}
@@ -148,6 +154,12 @@ export default function MapOverlay({
         {isMinimized && carLocation && (
           <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-800/60 shrink-0">
             <div className="flex items-center gap-3 text-xs font-mono font-bold text-slate-200 flex-wrap">
+              {carTelemetry?.sentry_mode && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-extrabold animate-pulse" title="Mode Sentinelle Actif">
+                  <Eye className="w-3 h-3 text-rose-400" />
+                  Sentinelle
+                </span>
+              )}
               {carTelemetry?.speed !== null && carTelemetry?.speed !== undefined && (
                 <span className="flex items-center gap-1">
                   <Gauge className="w-3.5 h-3.5 text-rose-400" />
@@ -288,6 +300,37 @@ export default function MapOverlay({
                   );
                 })}
               </div>
+            </div>
+
+            {/* Mode Sentinelle (Sentry Mode Status) */}
+            <div className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
+              carTelemetry?.sentry_mode
+                ? "bg-rose-950/30 border-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.12)]"
+                : "bg-slate-950 border-slate-800/60"
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <div className={`p-2 rounded-lg ${
+                  carTelemetry?.sentry_mode
+                    ? "bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse"
+                    : "bg-slate-900 text-slate-500 border border-slate-800/60"
+                }`}>
+                  <Eye className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="block text-[9px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Mode Sentinelle</span>
+                  <span className={`text-xs font-bold ${
+                    carTelemetry?.sentry_mode ? "text-rose-400 font-extrabold" : carTelemetry?.sentry_mode === false ? "text-slate-400" : "text-slate-500"
+                  }`}>
+                    {carTelemetry?.sentry_mode ? "Actif (Surveillance)" : carTelemetry?.sentry_mode === false ? "Inactif" : "Inconnu"}
+                  </span>
+                </div>
+              </div>
+              {carTelemetry?.sentry_mode && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-400 font-mono text-[9px] font-extrabold animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+                  REC
+                </div>
+              )}
             </div>
 
             {/* Itinéraire Actif */}

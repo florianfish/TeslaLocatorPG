@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   FileCode,
   MapPin,
-  Clock
+  Clock,
+  Eye
 } from "lucide-react";
 import { MessageLog, TopicEntry, MqttStatus } from "../types";
 
@@ -372,6 +373,36 @@ export default function DebugPanel({
                     Boite {gear}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Simulations Mode Sentinelle */}
+            <div>
+              <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                Simulations Mode Sentinelle (sentry_mode)
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPubTopic("teslamate/cars/1/sentry_mode");
+                    setPubPayload("true");
+                  }}
+                  className="bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/40 rounded-xl p-2.5 text-center text-xs font-bold transition-all cursor-pointer text-rose-400 flex items-center justify-center gap-1.5"
+                >
+                  <Eye className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+                  Sentinelle ON (true)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPubTopic("teslamate/cars/1/sentry_mode");
+                    setPubPayload("false");
+                  }}
+                  className="bg-slate-950 hover:bg-slate-800 border border-slate-850 rounded-xl p-2.5 text-center text-xs font-bold transition-all cursor-pointer text-slate-400"
+                >
+                  Sentinelle OFF (false)
+                </button>
               </div>
             </div>
 
