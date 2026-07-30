@@ -18,7 +18,7 @@ export default function App() {
   });
   const [authorized, setAuthorized] = useState<boolean>(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [isVerifying, setIsVerifying] = useState<boolean>(() => Boolean(token));
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // App & Broker configuration
@@ -73,7 +73,7 @@ export default function App() {
           throw new Error("Impossible de joindre le serveur de configuration.");
         }
         const data: ConfigData = await res.json();
-        
+
         if (data.authorized) {
           setAuthorized(true);
           setUserRole(data.role || "admin");
@@ -82,7 +82,7 @@ export default function App() {
           setTopicConfig(data.topicConfig);
           // Persist token for future sessions
           localStorage.setItem("car_tracker_token", token);
-          
+
           // Clear query params to keep URL clean, but keep token in memory
           const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
           window.history.replaceState({ path: cleanUrl }, "", cleanUrl);
@@ -303,7 +303,7 @@ export default function App() {
   useEffect(() => {
     try {
       sessionStorage.setItem("tesla_breadcrumb_points", JSON.stringify(trailPoints));
-    } catch {}
+    } catch { }
   }, [trailPoints]);
 
   // 4.6. Accumulate breadcrumb trail points when vehicle location changes (> 5m movement filter)
@@ -383,7 +383,7 @@ export default function App() {
     setTrailPoints([]);
     try {
       sessionStorage.removeItem("tesla_breadcrumb_points");
-    } catch {}
+    } catch { }
   };
 
   const handleToggleTrail = () => {
@@ -421,7 +421,7 @@ export default function App() {
   const handleSelectTopicCoordinate = (lat: number, lon: number, topic: string) => {
     if (mapRef.current) {
       mapRef.current.flyTo([lat, lon], 16, { animate: true, duration: 1.5 });
-      
+
       // Update our displayed location if the user focuses a secondary topic
       setCarLocation({
         lat,
@@ -448,11 +448,11 @@ export default function App() {
     setIsDebugOpen(false);
   };
 
-  // If we are not authorized yet, show the security lock screen gatekeeper
-  if (!authorized) {
+  // If token verification is finished and user is not authorized, show SecureLogin form
+  if (!authorized && !isVerifying) {
     return (
       <SecureLogin
-        isLoading={isVerifying}
+        isLoading={false}
         errorMsg={errorMsg}
         onVerify={handleVerifyToken}
       />
@@ -462,7 +462,22 @@ export default function App() {
   const formattedBroker = brokerUrl ? brokerUrl.replace(/^mqtts?:\/\//, "") : "Non configuré";
 
   return (
-    <div className="w-screen h-screen bg-slate-950 text-slate-100 font-sans flex flex-col overflow-hidden select-none">
+    <div className="w-screen h-screen bg-slate-950 text-slate-100 font-sans flex flex-col overflow-hidden select-none relative">
+      {/* Cockpit Loading Overlay during initial token verification */}
+      {isVerifying && (
+        <div className="absolute inset-0 z-[2000] bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center font-sans pointer-events-auto">
+          <div className="w-14 h-14 rounded-2xl bg-[#E82127]/15 border border-[#E82127]/30 flex items-center justify-center text-[#E82127] mb-4 shadow-2xl animate-pulse">
+            <svg className="w-7 h-7 text-[#E82127]" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5-1.5 1.5zM5 11l1.27-3.82c.14-.4.51-.68.94-.68h9.58c.43 0 .8.28.94.68L19 11H5z"/>
+            </svg>
+          </div>
+          <div className="w-8 h-8 border-3 border-[#E82127] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-slate-300 text-xs font-mono font-semibold uppercase tracking-wider mt-4 animate-pulse">
+            Initialisation du Cockpit Tesla...
+          </p>
+        </div>
+      )}
+
       {/* Header Navigation */}
       <header className="h-16 px-6 md:px-8 border-b border-slate-850 flex items-center justify-between bg-black/80 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-4">
@@ -483,16 +498,14 @@ export default function App() {
           <div className="hidden sm:flex flex-col items-end">
             <span className="text-[9px] md:text-[10px] text-slate-500 uppercase font-semibold">Statut Broker MQTT</span>
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${
-                mqttStatus === "connected"
+              <div className={`w-2 h-2 rounded-full ${mqttStatus === "connected"
                   ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"
                   : mqttStatus === "connecting"
-                  ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)] animate-pulse"
-                  : "bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
-              }`} />
-              <span className={`text-xs md:text-sm font-mono font-semibold ${
-                mqttStatus === "connected" ? "text-emerald-400" : mqttStatus === "connecting" ? "text-amber-400" : "text-rose-400"
-              }`}>
+                    ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)] animate-pulse"
+                    : "bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+                }`} />
+              <span className={`text-xs md:text-sm font-mono font-semibold ${mqttStatus === "connected" ? "text-emerald-400" : mqttStatus === "connecting" ? "text-amber-400" : "text-rose-400"
+                }`}>
                 {formattedBroker}
               </span>
             </div>

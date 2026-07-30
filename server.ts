@@ -1,4 +1,5 @@
 import express from "express";
+import http from "http";
 import path from "path";
 import dotenv from "dotenv";
 import mqtt from "mqtt";
@@ -686,10 +687,15 @@ async function startServer() {
     (process.env.NODE_ENV !== "production" && 
      (typeof __filename === "undefined" || !__filename.endsWith("server.cjs")));
 
+  const httpServer = http.createServer(app);
+
   if (isDev) {
-    // Development Mode: Use Vite Middleware
+    // Development Mode: Use Vite Middleware with HMR bound to httpServer
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: { server: httpServer },
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);
@@ -702,7 +708,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`Server listening on http://0.0.0.0:${PORT}`);
   });
 }
