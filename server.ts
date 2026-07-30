@@ -560,7 +560,7 @@ app.post("/api/test-publish", (req, res) => {
   }
 
   const { topic, payload } = req.body;
-  if (!topic || !payload) {
+  if (!topic || payload === undefined || payload === null) {
     return res.status(400).json({ error: "Missing topic or payload in body" });
   }
 

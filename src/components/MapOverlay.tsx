@@ -64,38 +64,6 @@ export default function MapOverlay({
     return () => clearInterval(interval);
   }, [carLocation]);
 
-  const getStatusBadge = () => {
-    switch (mqttStatus) {
-      case "connected":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            Broker Connecté
-          </span>
-        );
-      case "connecting":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce"></span>
-            Connexion...
-          </span>
-        );
-      case "error":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            Erreur
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/20">
-            Déconnecté
-          </span>
-        );
-    }
-  };
-
   const tpmsLowest = carTelemetry?.tpms
     ? Math.min(
         ...[
@@ -128,26 +96,17 @@ export default function MapOverlay({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {carTelemetry?.sentry_mode && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.3)] animate-pulse" title="Mode Sentinelle Actif">
-                <Eye className="w-3.5 h-3.5 text-rose-400" />
-                Sentinelle
-              </span>
-            )}
-            {getStatusBadge()}
-            <button
-              onClick={() => setIsMinimized(!isMinimized)}
-              className={`p-1.5 rounded-xl border transition-colors cursor-pointer ${
-                hasTpmsAlert
-                  ? "bg-rose-500/20 text-rose-400 border-rose-500/40 animate-pulse"
-                  : "bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700/50"
-              }`}
-              title={isMinimized ? "Agrandir la télémétrie" : "Minimiser la télémétrie"}
-            >
-              {isMinimized ? <ChevronDown className="w-4 h-4 text-[#E82127]" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
-            </button>
-          </div>
+          <button
+            onClick={() => setIsMinimized(!isMinimized)}
+            className={`p-1.5 rounded-xl border transition-colors cursor-pointer shrink-0 ${
+              hasTpmsAlert
+                ? "bg-rose-500/20 text-rose-400 border-rose-500/40 animate-pulse"
+                : "bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700/50"
+            }`}
+            title={isMinimized ? "Agrandir la télémétrie" : "Minimiser la télémétrie"}
+          >
+            {isMinimized ? <ChevronDown className="w-4 h-4 text-[#E82127]" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
+          </button>
         </div>
 
         {/* Minimized Quick Summary Bar */}
