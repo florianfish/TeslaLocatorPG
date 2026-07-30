@@ -25,8 +25,11 @@ export interface MessageLog {
   parsedGps?: { lat: number; lon: number };
 }
 
+export type UserRole = "admin" | "user";
+
 export interface ConfigData {
   authorized: boolean;
+  role?: UserRole;
   brokerUrl: string;
   topicConfig: string;
   defaultLocation: { lat: number; lon: number };

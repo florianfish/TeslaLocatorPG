@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Car, Compass, Navigation, RefreshCw, AlertTriangle, Settings, Radio, Gauge, Battery, Zap, Thermometer, Milestone, MapPin, ChevronDown, ChevronUp } from "lucide-react";
-import { CarLocation, MqttStatus, CarTelemetry } from "../types";
+import { CarLocation, MqttStatus, CarTelemetry, UserRole } from "../types";
 
 interface MapOverlayProps {
   carLocation: CarLocation | null;
@@ -11,6 +11,7 @@ interface MapOverlayProps {
   onToggleDebug: () => void;
   isDebugOpen: boolean;
   token: string;
+  userRole?: UserRole | null;
 }
 
 export default function MapOverlay({
@@ -22,6 +23,7 @@ export default function MapOverlay({
   onToggleDebug,
   isDebugOpen,
   token,
+  userRole,
 }: MapOverlayProps) {
   const [timeAgo, setTimeAgo] = useState<string>("Jamais");
   const [isMinimized, setIsMinimized] = useState<boolean>(true);
@@ -379,20 +381,22 @@ export default function MapOverlay({
         )}
       </div>
 
-      {/* Floating Header Actions */}
-      <div className="w-full md:w-auto flex justify-between md:justify-end items-center gap-2 pointer-events-auto">
-        <button
-          onClick={onToggleDebug}
-          className={`flex items-center gap-2 px-5 py-3 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all shadow-2xl cursor-pointer ${
-            isDebugOpen
-              ? "bg-[#E82127] border-[#E82127] text-white shadow-lg shadow-[#E82127]/20"
-              : "bg-slate-900/95 hover:bg-slate-800/95 text-slate-300 border-slate-800 hover:border-slate-700"
-          }`}
-        >
-          <Settings className={`w-4 h-4 ${isDebugOpen ? "animate-spin" : ""}`} style={{ animationDuration: "10s" }} />
-          <span>Console & MQTT</span>
-        </button>
-      </div>
+      {/* Floating Header Actions - Only available for Admin role */}
+      {userRole === "admin" && (
+        <div className="w-full md:w-auto flex justify-between md:justify-end items-center gap-2 pointer-events-auto">
+          <button
+            onClick={onToggleDebug}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all shadow-2xl cursor-pointer ${
+              isDebugOpen
+                ? "bg-[#E82127] border-[#E82127] text-white shadow-lg shadow-[#E82127]/20"
+                : "bg-slate-900/95 hover:bg-slate-800/95 text-slate-300 border-slate-800 hover:border-slate-700"
+            }`}
+          >
+            <Settings className={`w-4 h-4 ${isDebugOpen ? "animate-spin" : ""}`} style={{ animationDuration: "10s" }} />
+            <span>Console & MQTT</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

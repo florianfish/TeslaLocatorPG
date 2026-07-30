@@ -30,7 +30,7 @@ export default function SecureLogin({ isLoading, errorMsg, onVerify }: SecureLog
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Accès Sécurisé</h1>
           <p className="text-sm text-slate-400 mt-2">
-            La carte de localisation en temps réel est protégée. Veuillez saisir la clé de sécurité pour y accéder.
+            Saisissez votre clé d'accès (Admin ou Utilisateur) pour déverrouiller le suivi en temps réel.
           </p>
         </div>
 
@@ -53,7 +53,7 @@ export default function SecureLogin({ isLoading, errorMsg, onVerify }: SecureLog
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="token" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                Clé d'accès ou jeton (Token)
+                Clé d'accès Admin ou Utilisateur
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -83,7 +83,7 @@ export default function SecureLogin({ isLoading, errorMsg, onVerify }: SecureLog
 
         <div className="mt-8 pt-6 border-t border-slate-800 text-center">
           <p className="text-xs text-slate-500">
-            Conseil : Vous pouvez ajouter <code className="bg-slate-950 px-1.5 py-0.5 rounded text-[#E82127]">?token=VOTRE_CLE</code> à l'URL pour un accès direct et automatique.
+            Conseil : Ajoutez <code className="bg-slate-950 px-1.5 py-0.5 rounded text-[#E82127]">?token=VOTRE_CLE</code> à l'URL pour une connexion automatique.
           </p>
         </div>
       </div>

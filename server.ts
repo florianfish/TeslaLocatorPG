@@ -13,7 +13,19 @@ const PORT = 3000;
 app.use(express.json());
 
 // Secrets & Token configuration
-const SECURE_ACCESS_TOKEN = process.env.SECURE_ACCESS_TOKEN || "";
+function getRoleFromToken(token: any): "admin" | "user" | null {
+  if (!token || typeof token !== "string") return null;
+
+  const adminToken = process.env.ADMIN_ACCESS_TOKEN;
+  const userToken = process.env.USER_ACCESS_TOKEN;
+  const legacyToken = process.env.SECURE_ACCESS_TOKEN;
+
+  if (adminToken && token === adminToken) return "admin";
+  if (userToken && token === userToken) return "user";
+  if (legacyToken && token === legacyToken) return "admin";
+
+  return null;
+}
 
 // MQTT Configuration
 const rawBrokerUrl = process.env.MQTT_BROKER_URL || "";
@@ -361,10 +373,12 @@ connectMqtt();
 // Endpoint to fetch basic config and check token validity
 app.get("/api/config", (req, res) => {
   const { token } = req.query;
-  const isValid = token === SECURE_ACCESS_TOKEN;
+  const role = getRoleFromToken(token);
+  const isValid = role !== null;
 
   res.json({
     authorized: isValid,
+    role: role || undefined,
     brokerUrl: rawBrokerUrl,
     topicConfig: MQTT_TOPIC,
     defaultLocation: { lat: 46.2276, lon: 2.2137 } // Center of France
@@ -374,11 +388,13 @@ app.get("/api/config", (req, res) => {
 // Endpoint to fetch latest data on-demand
 app.get("/api/data", (req, res) => {
   const { token } = req.query;
-  if (token !== SECURE_ACCESS_TOKEN) {
+  const role = getRoleFromToken(token);
+  if (!role) {
     return res.status(403).json({ error: "Unauthorized. Missing or invalid secure token." });
   }
 
   res.json({
+    role,
     mqttStatus,
     mqttError,
     carLocation,
@@ -391,7 +407,8 @@ app.get("/api/data", (req, res) => {
 // Real-time Event Stream (SSE)
 app.get("/api/stream", (req, res) => {
   const { token } = req.query;
-  if (token !== SECURE_ACCESS_TOKEN) {
+  const role = getRoleFromToken(token);
+  if (!role) {
     return res.status(403).send("Unauthorized. Missing or invalid secure token.");
   }
 
@@ -408,6 +425,7 @@ app.get("/api/stream", (req, res) => {
   // Send initial load
   const initialPayload = {
     type: "init",
+    role,
     mqttStatus,
     mqttError,
     carLocation,
@@ -442,8 +460,9 @@ setInterval(() => {
 // Support publishing custom coordinates for testing / simulation
 app.post("/api/test-publish", (req, res) => {
   const { token } = req.query;
-  if (token !== SECURE_ACCESS_TOKEN) {
-    return res.status(403).json({ error: "Unauthorized. Missing or invalid secure token." });
+  const role = getRoleFromToken(token);
+  if (role !== "admin") {
+    return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
   }
 
   const { topic, payload } = req.body;

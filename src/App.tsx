@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import { CarLocation, MqttStatus, TopicEntry, MessageLog, ConfigData, CarTelemetry } from "./types";
+import { Shield, User, LogOut } from "lucide-react";
+import { CarLocation, MqttStatus, TopicEntry, MessageLog, ConfigData, CarTelemetry, UserRole } from "./types";
 import SecureLogin from "./components/SecureLogin";
 import MapOverlay from "./components/MapOverlay";
 import DebugPanel from "./components/DebugPanel";
@@ -15,6 +16,7 @@ export default function App() {
     return localStorage.getItem("car_tracker_token") || "";
   });
   const [authorized, setAuthorized] = useState<boolean>(false);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -60,6 +62,7 @@ export default function App() {
         
         if (data.authorized) {
           setAuthorized(true);
+          setUserRole(data.role || "admin");
           setBrokerUrl(data.brokerUrl);
           setTopicConfig(data.topicConfig);
           // Persist token for future sessions
@@ -70,11 +73,13 @@ export default function App() {
           window.history.replaceState({ path: cleanUrl }, "", cleanUrl);
         } else {
           setAuthorized(false);
+          setUserRole(null);
           setErrorMsg("La clé de sécurité fournie est invalide. Veuillez réessayer.");
           localStorage.removeItem("car_tracker_token");
         }
       } catch (err: any) {
         setAuthorized(false);
+        setUserRole(null);
         setErrorMsg(err.message || "Erreur de connexion.");
       } finally {
         setIsVerifying(false);
@@ -93,6 +98,7 @@ export default function App() {
         const res = await fetch(`/api/data?token=${encodeURIComponent(token)}`);
         if (res.ok) {
           const data = await res.json();
+          if (data.role) setUserRole(data.role);
           setMqttStatus(data.mqttStatus);
           setMqttError(data.mqttError);
           setCarLocation(data.carLocation);
@@ -133,6 +139,7 @@ export default function App() {
           }
 
           if (data.type === "init") {
+            if (data.role) setUserRole(data.role);
             setMqttStatus(data.mqttStatus);
             setMqttError(data.mqttError);
             setCarLocation(data.carLocation);
@@ -327,6 +334,17 @@ export default function App() {
     setToken(newToken);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("car_tracker_token");
+    setToken("");
+    setAuthorized(false);
+    setUserRole(null);
+    setCarLocation(null);
+    setCarTelemetry(null);
+    setMqttStatus("disconnected");
+    setIsDebugOpen(false);
+  };
+
   // If we are not authorized yet, show the security lock screen gatekeeper
   if (!authorized) {
     return (
@@ -377,12 +395,26 @@ export default function App() {
             </div>
           </div>
           <div className="hidden sm:block h-8 w-[1px] bg-slate-800"></div>
-          <div className="px-3.5 py-1.5 bg-slate-800/80 rounded-full border border-slate-700 flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-300 font-mono">xxxxx</span>
-            <svg className="w-3.5 h-3.5 text-[#E82127] animate-pulse" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-            </svg>
-          </div>
+          {userRole === "admin" ? (
+            <div className="px-3 py-1.5 bg-[#E82127]/10 border border-[#E82127]/30 rounded-full flex items-center gap-2">
+              <Shield className="w-3.5 h-3.5 text-[#E82127]" />
+              <span className="text-xs font-bold text-[#E82127] font-mono uppercase tracking-wider">Admin</span>
+            </div>
+          ) : (
+            <div className="px-3 py-1.5 bg-sky-950/40 border border-sky-500/30 rounded-full flex items-center gap-2">
+              <User className="w-3.5 h-3.5 text-sky-400" />
+              <span className="text-xs font-bold text-sky-300 font-mono uppercase tracking-wider">Utilisateur</span>
+            </div>
+          )}
+
+          <button
+            onClick={handleLogout}
+            className="px-3 py-1.5 bg-slate-900/90 hover:bg-rose-950/50 border border-slate-800 hover:border-rose-500/30 text-slate-300 hover:text-rose-300 rounded-xl flex items-center gap-1.5 text-xs font-medium transition-all cursor-pointer shadow-sm group ml-1"
+            title="Déconnexion (supprimer le jeton de session)"
+          >
+            <LogOut className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400 group-hover:-translate-x-0.5 transition-transform" />
+            <span className="hidden md:inline font-sans">Déconnexion</span>
+          </button>
         </div>
       </header>
 
@@ -401,6 +433,7 @@ export default function App() {
           onToggleDebug={() => setIsDebugOpen(!isDebugOpen)}
           isDebugOpen={isDebugOpen}
           token={token}
+          userRole={userRole}
         />
 
         {/* Sliding Control/Debug Drawer */}
