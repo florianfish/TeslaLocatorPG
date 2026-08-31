@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Car, Compass, Navigation, RefreshCw, AlertTriangle, Settings, Radio, Gauge, Battery, Zap, Thermometer, Milestone, MapPin, ChevronDown, ChevronUp, Disc, Route, Eye, EyeOff, Trash2 } from "lucide-react";
-import { CarLocation, MqttStatus, CarTelemetry, UserRole, BreadcrumbPoint } from "../types";
+import { Car, Compass, Navigation, RefreshCw, AlertTriangle, Settings, Radio, Gauge, Battery, Zap, Thermometer, Milestone, ChevronDown, ChevronUp, Disc, Eye } from "lucide-react";
+import { CarLocation, MqttStatus, CarTelemetry, UserRole } from "../types";
 import TpmsWidget from "./TpmsWidget";
 
 interface MapOverlayProps {
@@ -13,11 +13,6 @@ interface MapOverlayProps {
   isDebugOpen: boolean;
   token: string;
   userRole?: UserRole | null;
-  trailPoints?: BreadcrumbPoint[];
-  sessionDistanceKm?: number;
-  isTrailVisible?: boolean;
-  onToggleTrail?: () => void;
-  onClearTrail?: () => void;
 }
 
 export default function MapOverlay({
@@ -30,11 +25,6 @@ export default function MapOverlay({
   isDebugOpen,
   token,
   userRole,
-  trailPoints = [],
-  sessionDistanceKm = 0,
-  isTrailVisible = true,
-  onToggleTrail,
-  onClearTrail,
 }: MapOverlayProps) {
   const [timeAgo, setTimeAgo] = useState<string>("Jamais");
   const [isMinimized, setIsMinimized] = useState<boolean>(true);
@@ -129,12 +119,6 @@ export default function MapOverlay({
                 <span className="flex items-center gap-1">
                   <Battery className="w-3.5 h-3.5 text-emerald-400" />
                   {carTelemetry.battery_level}%
-                </span>
-              )}
-              {sessionDistanceKm > 0 && (
-                <span className="flex items-center gap-1 text-cyan-400" title="Distance du trajet session (Fil d'Ariane)">
-                  <Route className="w-3.5 h-3.5 text-cyan-400" />
-                  {sessionDistanceKm.toFixed(1)} km
                 </span>
               )}
               {carTelemetry?.tpms && (
@@ -292,81 +276,6 @@ export default function MapOverlay({
               )}
             </div>
 
-            {/* Itinéraire Actif */}
-            {carTelemetry?.active_route && (
-              <div className="bg-slate-950 p-4 rounded-xl border border-emerald-500/20 shadow-lg shadow-emerald-500/5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-4 h-4 text-emerald-400" />
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Itinéraire Actif</span>
-                  </div>
-                  {carTelemetry.active_route.error ? (
-                    <span className="text-[9px] font-semibold text-rose-400 bg-rose-950/20 px-2 py-0.5 rounded border border-rose-800/20">Pas d'itinéraire</span>
-                  ) : (
-                    <span className="text-[9px] font-semibold text-emerald-400 bg-emerald-950/20 px-2 py-0.5 rounded border border-emerald-800/20">En cours</span>
-                  )}
-                </div>
-
-                {carTelemetry.active_route.error ? (
-                  <p className="text-xs text-slate-500 italic">Aucun trajet en cours vers une destination.</p>
-                ) : (
-                  <div className="space-y-2.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <span className="block text-[8px] text-slate-500 uppercase tracking-wider font-bold mb-0.5">Destination</span>
-                        <span className="text-xs font-extrabold text-white truncate block" title={carTelemetry.active_route.destination || ""}>
-                          {carTelemetry.active_route.destination}
-                        </span>
-                      </div>
-                      {carTelemetry.active_route.energy_at_arrival !== null && (
-                        <div className="text-right shrink-0 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2 py-1">
-                          <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">À l'arrivée</span>
-                          <span className="text-xs font-mono font-bold text-emerald-400">
-                            {carTelemetry.active_route.energy_at_arrival}%
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-900">
-                      {carTelemetry.active_route.minutes_to_arrival !== null && (
-                        <div className="bg-slate-900/60 p-2 rounded-lg text-center">
-                          <span className="block text-[8px] uppercase text-slate-500 font-bold mb-0.5">Temps</span>
-                          <span className="text-xs font-mono font-bold text-slate-200">
-                            {carTelemetry.active_route.minutes_to_arrival < 60 
-                              ? `${Math.round(carTelemetry.active_route.minutes_to_arrival)} min`
-                              : `${Math.floor(carTelemetry.active_route.minutes_to_arrival / 60)}h${Math.round(carTelemetry.active_route.minutes_to_arrival % 60)}`
-                            }
-                          </span>
-                        </div>
-                      )}
-                      {carTelemetry.active_route.miles_to_arrival !== null && (
-                        <div className="bg-slate-900/60 p-2 rounded-lg text-center">
-                          <span className="block text-[8px] uppercase text-slate-500 font-bold mb-0.5">Distance</span>
-                          <span className="text-xs font-mono font-bold text-slate-200">
-                            {(carTelemetry.active_route.miles_to_arrival * 1.60934).toFixed(1)} km
-                          </span>
-                        </div>
-                      )}
-                      {carTelemetry.active_route.traffic_minutes_delay !== null && (
-                        <div className="bg-slate-900/60 p-2 rounded-lg text-center">
-                          <span className="block text-[8px] uppercase text-slate-500 font-bold mb-0.5">Trafic</span>
-                          <span className={`text-xs font-mono font-bold ${
-                            carTelemetry.active_route.traffic_minutes_delay > 0 ? "text-amber-400" : "text-emerald-400"
-                          }`}>
-                            {carTelemetry.active_route.traffic_minutes_delay > 0 
-                              ? `+${Math.round(carTelemetry.active_route.traffic_minutes_delay)}m`
-                              : "Fluide"
-                            }
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Odometer */}
             {carTelemetry && carTelemetry.odometer !== null && (
               <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/60 flex items-center justify-between text-xs text-slate-300">
@@ -379,84 +288,6 @@ export default function MapOverlay({
                 </span>
               </div>
             )}
-
-            {/* Widget Fil d'Ariane (Trajet Session) */}
-            <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800/60 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Route className="w-4 h-4 text-cyan-400" />
-                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                    Fil d'Ariane (Session)
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {onToggleTrail && (
-                    <button
-                      onClick={onToggleTrail}
-                      className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
-                        isTrailVisible
-                          ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20"
-                          : "bg-slate-900 text-slate-500 border-slate-800 hover:text-slate-300"
-                      }`}
-                      title={isTrailVisible ? "Masquer le fil d'Ariane" : "Afficher le fil d'Ariane"}
-                    >
-                      {isTrailVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                    </button>
-                  )}
-                  {onClearTrail && trailPoints.length > 0 && (
-                    <button
-                      onClick={onClearTrail}
-                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/50 text-slate-400 hover:text-rose-400 border border-slate-800 hover:border-rose-500/30 transition-colors cursor-pointer"
-                      title="Réinitialiser le tracé de la session"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-slate-900/60 p-2.5 rounded-lg">
-                  <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">
-                    Distance Trajet
-                  </span>
-                  <span className="text-xs font-mono font-bold text-cyan-400">
-                    {sessionDistanceKm.toFixed(2)} km
-                  </span>
-                </div>
-                <div className="bg-slate-900/60 p-2.5 rounded-lg">
-                  <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">
-                    Points Tracés
-                  </span>
-                  <span className="text-xs font-mono font-bold text-slate-200">
-                    {trailPoints.length} pts
-                  </span>
-                </div>
-              </div>
-
-              {/* Color Legend for speed zones */}
-              <div className="pt-2 border-t border-slate-900 flex items-center justify-between text-[9px] text-slate-400 font-medium">
-                <span className="text-slate-500 font-bold uppercase text-[8px]">Vitesse :</span>
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1" title="Moins de 15 km/h">
-                    <span className="w-2 h-2 rounded-full bg-[#06b6d4]"></span>
-                    <span>&lt;15</span>
-                  </span>
-                  <span className="flex items-center gap-1" title="15 à 50 km/h">
-                    <span className="w-2 h-2 rounded-full bg-[#10b981]"></span>
-                    <span>15-50</span>
-                  </span>
-                  <span className="flex items-center gap-1" title="50 à 90 km/h">
-                    <span className="w-2 h-2 rounded-full bg-[#f59e0b]"></span>
-                    <span>50-90</span>
-                  </span>
-                  <span className="flex items-center gap-1" title="Plus de 90 km/h">
-                    <span className="w-2 h-2 rounded-full bg-[#e82127]"></span>
-                    <span>&gt;90</span>
-                  </span>
-                </div>
-              </div>
-            </div>
 
             {/* Widget TPMS - Pression des Pneus */}
             <TpmsWidget tpms={carTelemetry?.tpms || null} />

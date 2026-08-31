@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { Shield, User, LogOut } from "lucide-react";
-import { CarLocation, MqttStatus, TopicEntry, MessageLog, ConfigData, CarTelemetry, UserRole, BreadcrumbPoint } from "./types";
-import { calculateDistanceMeters, calculateTotalDistanceKm, getSpeedColor } from "./utils/geo";
+import { CarLocation, MqttStatus, TopicEntry, MessageLog, ConfigData, CarTelemetry, UserRole } from "./types";
 import SecureLogin from "./components/SecureLogin";
 import MapOverlay from "./components/MapOverlay";
 import DebugPanel from "./components/DebugPanel";
@@ -37,24 +36,10 @@ export default function App() {
   // UI state
   const [isDebugOpen, setIsDebugOpen] = useState<boolean>(false);
 
-  // Breadcrumb Trail state & session persistence
-  const [trailPoints, setTrailPoints] = useState<BreadcrumbPoint[]>(() => {
-    try {
-      const saved = sessionStorage.getItem("tesla_breadcrumb_points");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [isTrailVisible, setIsTrailVisible] = useState<boolean>(true);
-
   // Leaflet Map Refs
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
-  const destinationMarkerRef = useRef<L.Marker | null>(null);
-  const routePolylineRef = useRef<L.Polyline | null>(null);
-  const trailLayerGroupRef = useRef<L.FeatureGroup | null>(null);
 
   // 1. Verification of the secure token
   useEffect(() => {
@@ -299,114 +284,6 @@ export default function App() {
 
   }, [carLocation]);
 
-  // 4.5. Synchronize trail points with sessionStorage
-  useEffect(() => {
-    try {
-      sessionStorage.setItem("tesla_breadcrumb_points", JSON.stringify(trailPoints));
-    } catch { }
-  }, [trailPoints]);
-
-  // 4.6. Accumulate breadcrumb trail points when vehicle location changes (> 5m movement filter)
-  useEffect(() => {
-    if (!carLocation) return;
-    setTrailPoints((prev) => {
-      const currentSpeed = carTelemetry?.speed ?? null;
-      if (prev.length === 0) {
-        return [{ lat: carLocation.lat, lon: carLocation.lon, timestamp: carLocation.timestamp, speed: currentSpeed }];
-      }
-      const lastPoint = prev[prev.length - 1];
-      const distMeters = calculateDistanceMeters(lastPoint.lat, lastPoint.lon, carLocation.lat, carLocation.lon);
-      if (distMeters >= 5) {
-        const updated = [...prev, { lat: carLocation.lat, lon: carLocation.lon, timestamp: carLocation.timestamp, speed: currentSpeed }];
-        if (updated.length > 1000) updated.shift();
-        return updated;
-      }
-      return prev;
-    });
-  }, [carLocation]);
-
-  // 4.7. Render Breadcrumb Trail on Leaflet map with speed-based color segments
-  useEffect(() => {
-    if (!mapRef.current) return;
-
-    if (!trailLayerGroupRef.current) {
-      trailLayerGroupRef.current = L.featureGroup().addTo(mapRef.current);
-    }
-
-    const layerGroup = trailLayerGroupRef.current;
-    layerGroup.clearLayers();
-
-    if (!isTrailVisible || trailPoints.length < 2) return;
-
-    for (let i = 1; i < trailPoints.length; i++) {
-      const p1 = trailPoints[i - 1];
-      const p2 = trailPoints[i];
-      const speed = p2.speed ?? p1.speed;
-      const color = getSpeedColor(speed);
-
-      // Outer glow line
-      L.polyline(
-        [
-          [p1.lat, p1.lon],
-          [p2.lat, p2.lon],
-        ],
-        {
-          color,
-          weight: 8,
-          opacity: 0.25,
-          lineCap: "round",
-          lineJoin: "round",
-        }
-      ).addTo(layerGroup);
-
-      // Core line
-      L.polyline(
-        [
-          [p1.lat, p1.lon],
-          [p2.lat, p2.lon],
-        ],
-        {
-          color,
-          weight: 4,
-          opacity: 0.9,
-          lineCap: "round",
-          lineJoin: "round",
-        }
-      ).addTo(layerGroup);
-    }
-  }, [trailPoints, isTrailVisible]);
-
-  // Calculate cumulative session distance in kilometers
-  const sessionDistanceKm = calculateTotalDistanceKm(trailPoints);
-
-  const handleClearTrail = () => {
-    setTrailPoints([]);
-    try {
-      sessionStorage.removeItem("tesla_breadcrumb_points");
-    } catch { }
-  };
-
-  const handleToggleTrail = () => {
-    setIsTrailVisible((prev) => !prev);
-  };
-
-  // 5.5. Clear any route-related markers/polylines since the user requested to only show the vehicle's position
-  useEffect(() => {
-    if (!mapRef.current) return;
-
-    // Remove existing destination marker if any
-    if (destinationMarkerRef.current) {
-      destinationMarkerRef.current.remove();
-      destinationMarkerRef.current = null;
-    }
-
-    // Remove existing polyline if any
-    if (routePolylineRef.current) {
-      routePolylineRef.current.remove();
-      routePolylineRef.current = null;
-    }
-  }, [carLocation, carTelemetry?.active_route]);
-
   // Recenter helper
   const handleRecenter = () => {
     if (mapRef.current && carLocation) {
@@ -550,11 +427,6 @@ export default function App() {
           isDebugOpen={isDebugOpen}
           token={token}
           userRole={userRole}
-          trailPoints={trailPoints}
-          sessionDistanceKm={sessionDistanceKm}
-          isTrailVisible={isTrailVisible}
-          onToggleTrail={handleToggleTrail}
-          onClearTrail={handleClearTrail}
         />
 
         {/* Sliding Control/Debug Drawer */}
