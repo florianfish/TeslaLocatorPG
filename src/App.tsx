@@ -201,9 +201,10 @@ export default function App() {
       zoomControl: false, // We'll place a custom one or just let users use zoom interactions
     }).setView([46.2276, 2.2137], 6);
 
-    // Use CartoDB Voyager tiles (bright, clear light mode)
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      attribution: '© OpenStreetMap contributors, © CartoDB',
+    // Use Esri World Street Map tiles (bright, clear light mode, no API key required)
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+      attribution: '© <a href="https://www.esri.com/">Esri</a>, HERE, Garmin, © OpenStreetMap contributors',
+      maxNativeZoom: 19,
       maxZoom: 20,
     }).addTo(map);
 
