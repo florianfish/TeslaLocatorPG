@@ -4,14 +4,6 @@ Application moderne de suivi et de géolocalisation de véhicule (Tesla) en temp
 
 ---
 
-## 🖼️ Aperçu / Screenshots
-
-| Carte & Télémétrie en Temps Réel | Inspection MQTT & Console Debug |
-| :---: | :---: |
-| ![Dashboard TeslaLocatorPG](assets/screenshots/dashboard.png) | ![Console Debug & Inspector](assets/screenshots/debug_panel.png) |
-
----
-
 ## 🛠️ Prérequis
 
 - **Mode Développement** : [Node.js](https://nodejs.org/) (v20+) et `npm`
