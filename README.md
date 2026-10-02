@@ -46,23 +46,27 @@ Idéal pour apporter des modifications au code source (`src/` ou `server.ts`) av
 
 ### 🐳 Mode Docker (Production / Déploiement)
 
-#### A. Utilisation du code local (Build local)
-Dans [docker-compose.yml](file:///c:/projects/TeslaLocatorPG/docker-compose.yml), utilisez la configuration `build: .` pour prendre en compte vos fichiers locaux :
 ```bash
 docker compose up --build -d
 ```
 
-#### B. Utilisation de l'image GHCR pré-construite
-Si vous utilisez la version distante publiée :
-```bash
-docker compose up -d
-```
+---
+
+## 🏠 Add-on Home Assistant
+
+Le dépôt est aussi un dépôt d'add-ons Home Assistant (`repository.yaml` + dossier `tesla-locator/`).
+
+1. **Paramètres → Modules complémentaires → Boutique → ⋮ → Dépôts**, ajouter `https://github.com/florianfish/TeslaLocatorPG`.
+2. Installer **Tesla Tracker**, renseigner l'onglet **Configuration** (équivalent du `.env` : broker, identifiants et topic MQTT, jetons), puis démarrer.
+3. Optionnel : définir un port d'accès direct dans l'onglet **Réseau** (désactivé par défaut).
+
+Depuis la barre latérale (Ingress), aucun jeton n'est demandé : l'authentification est assurée par Home Assistant. L'image (`amd64` / `aarch64`) est publiée sur GHCR par `.github/workflows/addon-image.yml` à chaque changement de `version` dans `tesla-locator/config.yaml`. Voir [tesla-locator/DOCS.md](tesla-locator/DOCS.md).
 
 ---
 
 ## 🔐 Sécurité & Jeton d'Accès
 
-L'accès à l'application est protégé par le jeton défini dans `SECURE_ACCESS_TOKEN`.
+L'accès à l'application est protégé par les jetons `ADMIN_ACCESS_TOKEN` (accès complet) et `USER_ACCESS_TOKEN` (lecture seule) définis dans `.env`.
 
 Vous pouvez vous authentifier de deux manières :
 1. **Sur l'écran d'accueil** : Saisissez simplement votre jeton dans le formulaire de connexion.

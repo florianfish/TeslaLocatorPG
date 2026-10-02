@@ -39,6 +39,7 @@ export interface ConfigData {
   authorized: boolean;
   role?: UserRole;
   version?: string;
+  ingress?: boolean;
   brokerUrl: string;
   topicConfig: string;
   defaultLocation: { lat: number; lon: number };

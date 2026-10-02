@@ -1,0 +1,20 @@
+configuration:
+  mqtt_broker_url:
+    name: MQTT broker URL
+    description: "Broker TeslaMate publishes to (e.g. mqtt://core-mosquitto:1883 for the Mosquitto add-on, mqtt://192.168.1.10:1883, mqtts://… for TLS)."
+  mqtt_username:
+    name: MQTT username
+    description: Leave empty if the broker does not require authentication.
+  mqtt_password:
+    name: MQTT password
+  mqtt_topic:
+    name: Location topic
+    description: TeslaMate topic for the vehicle location (other telemetry topics use the same prefix).
+  admin_access_token:
+    name: Admin token
+    description: Full access (MQTT console, simulator) for direct access through the network port. Not used from the Home Assistant sidebar.
+  user_access_token:
+    name: User token
+    description: Read-only access (map and telemetry) for direct access through the network port.
+network:
+  3000/tcp: Web UI port for token-based direct access (leave empty to only use the Home Assistant sidebar)

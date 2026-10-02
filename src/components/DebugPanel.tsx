@@ -69,7 +69,7 @@ export default function DebugPanel({
         parsedPayload = pubPayload; // Send as plain string if not valid JSON
       }
 
-      const res = await fetch(`/api/test-publish?token=${encodeURIComponent(token)}`, {
+      const res = await fetch(`api/test-publish?token=${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

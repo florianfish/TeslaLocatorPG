@@ -1,0 +1,38 @@
+name: Tesla Tracker
+version: "1.0.0"
+slug: tesla_locator
+description: Suivi en temps réel de la position et de la télémétrie d'une Tesla via TeslaMate (MQTT)
+url: https://github.com/florianfish/TeslaLocatorPG
+arch:
+  - amd64
+  - aarch64
+image: ghcr.io/florianfish/teslalocatorpg-{arch}
+startup: application
+boot: auto
+ingress: true
+ingress_port: 3000
+panel_icon: mdi:car-electric
+panel_title: Tesla Tracker
+# Accès direct optionnel hors Ingress (authentifié par jeton) : désactivé par défaut, port réglable dans l'onglet « Réseau »
+ports:
+  3000/tcp: null
+ports_description:
+  3000/tcp: Interface web (accès direct par jeton, sans passer par Home Assistant)
+environment:
+  ADDON_OPTIONS_FILE: /data/options.json
+  HA_INGRESS: "true"
+options:
+  mqtt_broker_url: "mqtt://core-mosquitto:1883"
+  mqtt_username: ""
+  mqtt_password: ""
+  mqtt_topic: teslamate/cars/1/location
+  admin_access_token: ""
+  user_access_token: ""
+schema:
+  mqtt_broker_url: str
+  mqtt_username: str?
+  mqtt_password: password?
+  mqtt_topic: str
+  admin_access_token: password?
+  user_access_token: password?
+watchdog: http://[HOST]:[PORT:3000]/api/config

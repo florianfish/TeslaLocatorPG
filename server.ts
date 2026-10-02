@@ -1,6 +1,7 @@
 import express from "express";
 import http from "http";
 import path from "path";
+import fs from "fs";
 import dotenv from "dotenv";
 import mqtt from "mqtt";
 import { execSync } from "child_process";
@@ -23,6 +24,24 @@ function getAppVersion(): string {
 // Load environment variables
 dotenv.config();
 
+// Home Assistant add-on: options from the add-on Configuration tab override environment variables
+function loadAddonOptions() {
+  const optionsFile = process.env.ADDON_OPTIONS_FILE;
+  if (!optionsFile || !fs.existsSync(optionsFile)) return;
+  try {
+    const options = JSON.parse(fs.readFileSync(optionsFile, "utf-8"));
+    for (const [key, value] of Object.entries(options)) {
+      if (value !== null && value !== undefined && value !== "") {
+        process.env[key.toUpperCase()] = String(value);
+      }
+    }
+    console.log(`Loaded Home Assistant add-on options from ${optionsFile}`);
+  } catch (err) {
+    console.error("Failed to read Home Assistant add-on options:", err);
+  }
+}
+loadAddonOptions();
+
 const app = express();
 const PORT = 3000;
 
@@ -41,6 +60,19 @@ function getRoleFromToken(token: any): "admin" | "user" | null {
   if (legacyToken && token === legacyToken) return "admin";
 
   return null;
+}
+
+// Home Assistant Ingress: requests are already authenticated by HA and only come from the Supervisor proxy
+const INGRESS_PROXY_IP = "172.30.32.2";
+
+function isIngressRequest(req: express.Request): boolean {
+  if (process.env.HA_INGRESS !== "true") return false;
+  return req.socket.remoteAddress?.replace(/^::ffff:/, "") === INGRESS_PROXY_IP;
+}
+
+function getRequestRole(req: express.Request): "admin" | "user" | null {
+  if (isIngressRequest(req)) return "admin";
+  return getRoleFromToken(req.query.token);
 }
 
 // MQTT Configuration
@@ -414,24 +446,24 @@ connectMqtt();
 
 // Endpoint to fetch basic config and check token validity
 app.get("/api/config", (req, res) => {
-  const { token } = req.query;
-  const role = getRoleFromToken(token);
+  const role = getRequestRole(req);
   const isValid = role !== null;
 
   res.json({
     authorized: isValid,
     role: role || undefined,
+    ingress: isIngressRequest(req),
     version: getAppVersion(),
-    brokerUrl: rawBrokerUrl,
-    topicConfig: MQTT_TOPIC,
+    // Broker details are only disclosed to authorized clients
+    brokerUrl: isValid ? rawBrokerUrl : "",
+    topicConfig: isValid ? MQTT_TOPIC : "",
     defaultLocation: { lat: 46.2276, lon: 2.2137 } // Center of France
   });
 });
 
 // Endpoint to fetch latest data on-demand
 app.get("/api/data", (req, res) => {
-  const { token } = req.query;
-  const role = getRoleFromToken(token);
+  const role = getRequestRole(req);
   if (!role) {
     return res.status(403).json({ error: "Unauthorized. Missing or invalid secure token." });
   }
@@ -449,8 +481,7 @@ app.get("/api/data", (req, res) => {
 
 // Real-time Event Stream (SSE)
 app.get("/api/stream", (req, res) => {
-  const { token } = req.query;
-  const role = getRoleFromToken(token);
+  const role = getRequestRole(req);
   if (!role) {
     return res.status(403).send("Unauthorized. Missing or invalid secure token.");
   }
@@ -553,8 +584,7 @@ function applyTpmsData(parsedVal: any, subTopicType?: string) {
 
 // Support publishing custom coordinates for testing / simulation
 app.post("/api/test-publish", (req, res) => {
-  const { token } = req.query;
-  const role = getRoleFromToken(token);
+  const role = getRequestRole(req);
   if (role !== "admin") {
     return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
   }

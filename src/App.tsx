@@ -17,7 +17,9 @@ export default function App() {
   });
   const [authorized, setAuthorized] = useState<boolean>(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [isVerifying, setIsVerifying] = useState<boolean>(() => Boolean(token));
+  // Always verify on load: Home Assistant Ingress sessions are authorized without a token
+  const [isVerifying, setIsVerifying] = useState<boolean>(true);
+  const [isIngress, setIsIngress] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // App & Broker configuration
@@ -43,17 +45,11 @@ export default function App() {
 
   // 1. Verification of the secure token
   useEffect(() => {
-    if (!token) {
-      setAuthorized(false);
-      setIsVerifying(false);
-      return;
-    }
-
     const verifyToken = async () => {
       setIsVerifying(true);
       setErrorMsg(null);
       try {
-        const res = await fetch(`/api/config?token=${encodeURIComponent(token)}`);
+        const res = await fetch(`api/config?token=${encodeURIComponent(token)}`);
         if (!res.ok) {
           throw new Error("Impossible de joindre le serveur de configuration.");
         }
@@ -65,8 +61,9 @@ export default function App() {
           if (data.version) setAppVersion(data.version);
           setBrokerUrl(data.brokerUrl);
           setTopicConfig(data.topicConfig);
+          setIsIngress(Boolean(data.ingress));
           // Persist token for future sessions
-          localStorage.setItem("car_tracker_token", token);
+          if (token) localStorage.setItem("car_tracker_token", token);
 
           // Clear query params to keep URL clean, but keep token in memory
           const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
@@ -74,7 +71,7 @@ export default function App() {
         } else {
           setAuthorized(false);
           setUserRole(null);
-          setErrorMsg("La clé de sécurité fournie est invalide. Veuillez réessayer.");
+          setErrorMsg(token ? "La clé de sécurité fournie est invalide. Veuillez réessayer." : null);
           localStorage.removeItem("car_tracker_token");
         }
       } catch (err: any) {
@@ -91,11 +88,11 @@ export default function App() {
 
   // 2. Load initial snapshot data once authorized
   useEffect(() => {
-    if (!authorized || !token) return;
+    if (!authorized) return;
 
     const loadInitialData = async () => {
       try {
-        const res = await fetch(`/api/data?token=${encodeURIComponent(token)}`);
+        const res = await fetch(`api/data?token=${encodeURIComponent(token)}`);
         if (res.ok) {
           const data = await res.json();
           if (data.role) setUserRole(data.role);
@@ -116,7 +113,7 @@ export default function App() {
 
   // 3. Setup SSE real-time stream once authorized
   useEffect(() => {
-    if (!authorized || !token) return;
+    if (!authorized) return;
 
     let eventSource: EventSource | null = null;
     let reconnectTimeout: NodeJS.Timeout | null = null;
@@ -126,7 +123,7 @@ export default function App() {
         eventSource.close();
       }
 
-      const streamUrl = `/api/stream?token=${encodeURIComponent(token!)}`;
+      const streamUrl = `api/stream?token=${encodeURIComponent(token)}`;
       eventSource = new EventSource(streamUrl);
 
       eventSource.onmessage = (event) => {
@@ -400,6 +397,7 @@ export default function App() {
             </div>
           )}
 
+          {!isIngress && (
           <button
             onClick={handleLogout}
             className="px-3 py-1.5 bg-slate-900/90 hover:bg-rose-950/50 border border-slate-800 hover:border-rose-500/30 text-slate-300 hover:text-rose-300 rounded-xl flex items-center gap-1.5 text-xs font-medium transition-all cursor-pointer shadow-sm group ml-1"
@@ -408,6 +406,7 @@ export default function App() {
             <LogOut className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400 group-hover:-translate-x-0.5 transition-transform" />
             <span className="hidden md:inline font-sans">Déconnexion</span>
           </button>
+          )}
         </div>
       </header>
 

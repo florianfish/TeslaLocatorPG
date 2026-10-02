@@ -1,25 +1,10 @@
-#version: "3.8"
-
-#services:
-#  tesla-locator:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile
-#    container_name: tesla-locator
-#    restart: unless-stopped
-#    ports:
-#      - "3000:3000"
-#    env_file:
-#      - .env
-#    environment:
-#      - NODE_ENV=production
-#      - PORT=3000
-
 services:
   tesla-locator:
-    image: ghcr.io/florianfish/teslalocatorpg:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: tesla-locator
-    restart: always
+    restart: unless-stopped
     ports:
       - "3000:3000"
     env_file:
