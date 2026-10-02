@@ -738,8 +738,9 @@ async function startServer() {
     });
   }
 
-  httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server listening on http://0.0.0.0:${PORT}`);
+  // No explicit host: listen on IPv4 and IPv6 (the Home Assistant Nginx proxy reaches add-ons over IPv6)
+  httpServer.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT} (IPv4 + IPv6)`);
   });
 }
 
