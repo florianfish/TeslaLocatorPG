@@ -5,6 +5,9 @@
 - Image basée sur Node.js 24 (LTS) : Node.js 20 n'est plus maintenu.
 - Mise à jour des dépendances, dont les correctifs de sécurité d'`express` (`qs`, `proxy-addr`) et de `mqtt` (`ip-address`).
 - Montée de version majeure des dépendances : Express 5, Vite 8, TypeScript 7, lucide-react 1, dotenv 18 ; retrait de `motion`, inutilisé.
+- Correction : pendant une navigation, la voiture n'est plus déplacée sur la destination de l'itinéraire (seul le topic de position met à jour sa position).
+- Correction : icône de voiture de l'écran de chargement mal formée (erreur dans la console du navigateur).
+- Correction : l'écran de recharge ne recouvre plus le panneau de télémétrie ; il se place dessous et passe en version compacte quand la télémétrie est dépliée.
 
 ## 1.3.0
 

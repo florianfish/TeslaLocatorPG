@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Car, Compass, Navigation, RefreshCw, AlertTriangle, Settings, Radio, Gauge, Battery, Zap, Thermometer, Milestone, ChevronDown, ChevronUp, Disc, Eye, Share2 } from "lucide-react";
 import { CarLocation, MqttStatus, CarTelemetry, UserRole } from "../types";
 import TpmsWidget from "./TpmsWidget";
+import ChargingPanel from "./ChargingPanel";
 
 interface MapOverlayProps {
   carLocation: CarLocation | null;
@@ -75,8 +76,10 @@ export default function MapOverlay({
 
   return (
     <div className="absolute inset-x-0 top-0 p-4 z-[1000] flex flex-col md:flex-row justify-between items-start gap-4 pointer-events-none font-sans">
+      {/* Left column: telemetry HUD, with the charging panel stacked below it so they never overlap */}
+      <div className="w-full md:w-auto max-w-sm flex flex-col gap-3 max-h-[calc(100vh-6rem)]">
       {/* HUD Info Panel */}
-      <div className="w-full md:w-auto max-w-sm bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl p-4 md:p-5 shadow-2xl pointer-events-auto flex flex-col gap-3.5 max-h-[calc(100vh-6rem)]">
+      <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl p-4 md:p-5 shadow-2xl pointer-events-auto flex flex-col gap-3.5 min-h-0">
         {/* Header */}
         <div className={`flex items-center justify-between gap-2 shrink-0 ${!isMinimized ? "border-b border-slate-850 pb-3" : ""}`}>
           <div className="flex items-center gap-2.5 min-w-0">
@@ -354,6 +357,11 @@ export default function MapOverlay({
             </div>
           </div>
         )}
+      </div>
+
+      {carTelemetry?.state === "charging" && (
+        <ChargingPanel charging={carTelemetry.charging} batteryLevel={carTelemetry.battery_level} compact={!isMinimized} />
+      )}
       </div>
 
       {/* Floating Header Actions - Only available for Admin role */}

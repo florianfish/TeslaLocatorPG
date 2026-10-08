@@ -4,7 +4,6 @@ import { Shield, User, LogOut, Link2 } from "lucide-react";
 import { CarLocation, MqttStatus, TopicEntry, MessageLog, ConfigData, CarTelemetry, UserRole, ShareSession } from "./types";
 import SecureLogin from "./components/SecureLogin";
 import MapOverlay from "./components/MapOverlay";
-import ChargingPanel from "./components/ChargingPanel";
 import DebugPanel from "./components/DebugPanel";
 import SharePanel from "./components/SharePanel";
 
@@ -371,7 +370,7 @@ export default function App() {
         <div className="absolute inset-0 z-[2000] bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center font-sans pointer-events-auto">
           <div className="w-14 h-14 rounded-2xl bg-[#E82127]/15 border border-[#E82127]/30 flex items-center justify-center text-[#E82127] mb-4 shadow-2xl animate-pulse">
             <svg className="w-7 h-7 text-[#E82127]" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5-1.5 1.5zM5 11l1.27-3.82c.14-.4.51-.68.94-.68h9.58c.43 0 .8.28.94.68L19 11H5z"/>
+              <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.27-3.82c.14-.4.51-.68.94-.68h9.58c.43 0 .8.28.94.68L19 11H5z"/>
             </svg>
           </div>
           <div className="w-8 h-8 border-3 border-[#E82127] border-t-transparent rounded-full animate-spin"></div>
@@ -468,10 +467,6 @@ export default function App() {
           token={token}
           userRole={userRole}
         />
-
-        {carTelemetry?.state === "charging" && (
-          <ChargingPanel charging={carTelemetry.charging} batteryLevel={carTelemetry.battery_level} />
-        )}
 
         {/* Sliding Control/Debug Drawer */}
         <DebugPanel

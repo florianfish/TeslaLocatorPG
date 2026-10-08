@@ -241,6 +241,24 @@ function broadcast(data: any) {
   });
 }
 
+// MQTT topic filter matching, with "+" (one level) and "#" (remaining levels) wildcards
+function mqttTopicMatches(filter: string, topic: string): boolean {
+  const filterLevels = filter.split("/");
+  const topicLevels = topic.split("/");
+  for (let i = 0; i < filterLevels.length; i++) {
+    if (filterLevels[i] === "#") return true;
+    if (i >= topicLevels.length) return false;
+    if (filterLevels[i] !== "+" && filterLevels[i] !== topicLevels[i]) return false;
+  }
+  return filterLevels.length === topicLevels.length;
+}
+
+// Only the configured location topic moves the car: other payloads can hold unrelated
+// coordinates (e.g. active_route carries the navigation destination)
+function isLocationTopic(topic: string): boolean {
+  return mqttTopicMatches(MQTT_TOPIC, topic);
+}
+
 // Coordinate parsing helper
 function parseGps(payloadStr: string): { lat: number; lon: number } | null {
   try {
@@ -450,8 +468,8 @@ function connectMqtt() {
       const chargingMatch = topic.match(/^teslamate\/cars\/[^/]+\/([a-z_]+)$/);
       if (chargingMatch) applyChargingData(chargingMatch[1], rawPayload);
 
-      // Update car location if GPS coordinates detected
-      if (parsedGps) {
+      // Update car location if GPS coordinates detected on the location topic
+      if (parsedGps && isLocationTopic(topic)) {
         carLocation = {
           lat: parsedGps.lat,
           lon: parsedGps.lon,
@@ -841,7 +859,7 @@ app.post("/api/test-publish", (req, res) => {
     }
   }
 
-  if (parsedGps) {
+  if (parsedGps && isLocationTopic(topic)) {
     carLocation = {
       lat: parsedGps.lat,
       lon: parsedGps.lon,

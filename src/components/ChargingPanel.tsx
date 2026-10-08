@@ -5,6 +5,8 @@ import { ChargingData } from "../types";
 interface ChargingPanelProps {
   charging: ChargingData | null;
   batteryLevel: number | null;
+  // Hides the details, e.g. while the telemetry panel above is expanded and needs the height
+  compact?: boolean;
 }
 
 // TeslaMate publishes time_to_full_charge in decimal hours
@@ -21,7 +23,7 @@ function formatEta(hours: number): string {
   return eta.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export default function ChargingPanel({ charging, batteryLevel }: ChargingPanelProps) {
+export default function ChargingPanel({ charging, batteryLevel, compact = false }: ChargingPanelProps) {
   const [isMinimized, setIsMinimized] = useState<boolean>(false);
 
   const power = charging?.charger_power ?? null;
@@ -33,7 +35,7 @@ export default function ChargingPanel({ charging, batteryLevel }: ChargingPanelP
   const level = batteryLevel !== null ? Math.max(0, Math.min(100, batteryLevel)) : null;
 
   return (
-    <div className="absolute bottom-6 left-4 right-16 md:right-auto md:w-96 z-[1000] pointer-events-auto font-sans">
+    <div className="w-full md:w-96 shrink-0 pointer-events-auto font-sans">
       <div className="bg-slate-900/90 backdrop-blur-xl border border-emerald-500/30 rounded-2xl p-4 shadow-2xl shadow-emerald-500/10 flex flex-col gap-3.5">
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
@@ -51,6 +53,7 @@ export default function ChargingPanel({ charging, batteryLevel }: ChargingPanelP
               </p>
             </div>
           </div>
+          {!compact && (
           <button
             onClick={() => setIsMinimized(!isMinimized)}
             className="p-1.5 rounded-xl border bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700/50 transition-colors cursor-pointer shrink-0"
@@ -58,6 +61,7 @@ export default function ChargingPanel({ charging, batteryLevel }: ChargingPanelP
           >
             {isMinimized ? <ChevronUp className="w-4 h-4 text-emerald-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
           </button>
+          )}
         </div>
 
         {/* Battery gauge with charge limit marker */}
@@ -89,7 +93,7 @@ export default function ChargingPanel({ charging, batteryLevel }: ChargingPanelP
           </div>
         </div>
 
-        {!isMinimized && (
+        {!isMinimized && !compact && (
           <div className="grid grid-cols-2 gap-3">
             {/* Power */}
             <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/60 flex items-center gap-2.5">
