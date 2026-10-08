@@ -771,7 +771,8 @@ app.post("/api/test-publish", (req, res) => {
     return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
   }
 
-  const { topic, payload } = req.body;
+  // Express 5 leaves req.body undefined when the request has no JSON body
+  const { topic, payload } = req.body ?? {};
   if (!topic || payload === undefined || payload === null) {
     return res.status(400).json({ error: "Missing topic or payload in body" });
   }
@@ -915,7 +916,8 @@ async function startServer() {
     // Production Mode: Serve Static Build Files
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get("*", (req, res) => {
+    // Express 5 syntax for a catch-all route (bare "*" is no longer accepted)
+    app.get("/{*splat}", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }

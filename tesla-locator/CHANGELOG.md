@@ -4,6 +4,7 @@
 
 - Image basée sur Node.js 24 (LTS) : Node.js 20 n'est plus maintenu.
 - Mise à jour des dépendances, dont les correctifs de sécurité d'`express` (`qs`, `proxy-addr`) et de `mqtt` (`ip-address`).
+- Montée de version majeure des dépendances : Express 5, Vite 8, TypeScript 7, lucide-react 1, dotenv 18 ; retrait de `motion`, inutilisé.
 
 ## 1.3.0
 

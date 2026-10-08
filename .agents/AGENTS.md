@@ -21,7 +21,7 @@ Welcome! This repository contains **TeslaLocatorPG**, a real-time Tesla vehicle 
 2. **Frontend (`src/`)**:
    - **React 19 + Vite**: Modern SPA layout.
    - **Leaflet (`leaflet`)**: Interactive map with custom car marker, smooth polyline tracking, and dark tile layers.
-   - **Tailwind CSS v4 + Lucide Icons + Motion**: Premium glassmorphic UI overlay, telemetry gauges, connection status pill, and debug drawer.
+   - **Tailwind CSS v4 + Lucide Icons**: Premium glassmorphic UI overlay, telemetry gauges, connection status pill, and debug drawer.
 
 ---
 
