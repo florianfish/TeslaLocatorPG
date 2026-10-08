@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0
+
+- Écran de recharge en direct : puissance, temps restant et heure de fin, énergie ajoutée, limite de charge, autonomie et détails électriques, affiché pendant la recharge.
+- Notifications Telegram configurables depuis l'onglet **Configuration** : début de charge (avec heure de fin prévue), fin ou interruption de charge, pression de pneu basse (seuil réglable).
+
 ## 1.2.1
 
 - Retrait de la dépendance inutilisée `@google/genai` : image plus légère, plus d'avertissement `node-domexception` au build.

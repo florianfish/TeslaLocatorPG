@@ -19,5 +19,23 @@ configuration:
   public_url:
     name: URL publique
     description: "Adresse d'accès direct joignable par les destinataires des liens de partage (ex : https://tesla.mondomaine.fr). Sans elle, seul le jeton du lien est fourni."
+  telegram_bot_token:
+    name: Jeton du bot Telegram
+    description: Jeton fourni par @BotFather. Laisser vide pour désactiver les notifications.
+  telegram_chat_id:
+    name: Chat ID Telegram
+    description: "Identifiant de la conversation qui reçoit les notifications (plusieurs séparés par des virgules). Écrire d'abord au bot pour l'autoriser à vous répondre."
+  notify_charge_started:
+    name: Notifier le début de charge
+    description: Message une minute après le début de la recharge, avec la puissance et l'heure de fin prévue.
+  notify_charge_complete:
+    name: Notifier la fin de charge
+    description: Message quand la recharge s'arrête (limite atteinte ou interrompue), avec l'énergie ajoutée.
+  notify_tpms:
+    name: Notifier une pression de pneu basse
+    description: Message quand un pneu passe sous le seuil ou que la voiture signale une alerte TPMS.
+  tpms_alert_threshold:
+    name: Seuil d'alerte pneus (bar)
+    description: Pression en dessous de laquelle un pneu déclenche une notification (2.3 par défaut).
 network:
   3000/tcp: Port de l'interface web pour un accès direct par jeton (laisser vide pour n'utiliser que la barre latérale Home Assistant)

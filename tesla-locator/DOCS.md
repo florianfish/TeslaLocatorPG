@@ -21,11 +21,29 @@ Ces options remplacent le fichier `.env` de l'installation Docker. Après modifi
 | Jeton administrateur | `ADMIN_ACCESS_TOKEN` | Accès complet en accès direct |
 | Jeton utilisateur | `USER_ACCESS_TOKEN` | Accès en lecture seule en accès direct (position, vitesse, batterie, état, itinéraire ; sans données MQTT brutes, kilométrage, pneus ni Sentinelle) |
 | URL publique | `PUBLIC_URL` | Adresse d'accès direct utilisée dans les liens de partage (ex : `https://tesla.mondomaine.fr`) |
+| Jeton du bot / Chat ID Telegram | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | Active les notifications Telegram (voir ci-dessous) |
+| Notifier début / fin de charge, pneus | `NOTIFY_CHARGE_STARTED` / `NOTIFY_CHARGE_COMPLETE` / `NOTIFY_TPMS` | Choix des notifications envoyées (toutes activées par défaut) |
+| Seuil d'alerte pneus | `TPMS_ALERT_THRESHOLD` | En bar, `2.3` par défaut |
 
 ## Accès
 
 - **Barre latérale Home Assistant (Ingress)** : aucun jeton demandé, l'authentification est assurée par Home Assistant et l'accès est administrateur. Le panneau est réservé aux administrateurs HA.
 - **Accès direct** (`http://<ip-home-assistant>:<port>/?token=…`) : désactivé par défaut. Renseigner un port dans l'onglet **Réseau**, et définir au moins un jeton. Ne l'exposez pas sur Internet sans HTTPS.
+
+## Notifications Telegram
+
+1. Dans Telegram, écrire à **@BotFather**, envoyer `/newbot` et copier le jeton fourni.
+2. Envoyer un message quelconque à votre nouveau bot (sans cela, il ne peut pas vous écrire).
+3. Récupérer votre chat ID : ouvrir `https://api.telegram.org/bot<JETON>/getUpdates` et relever `"chat":{"id":…}`. Pour un groupe, ajouter le bot au groupe ; l'identifiant commence alors par `-`.
+4. Renseigner **Jeton du bot Telegram** et **Chat ID Telegram**, choisir les notifications, puis redémarrer l'add-on. Le journal de l'add-on confirme les notifications actives.
+
+| Notification | Déclenchement |
+| --- | --- |
+| Début de charge | Une minute après le passage à l'état `charging` : niveau, limite, puissance et heure de fin prévue |
+| Fin de charge | À la sortie de l'état `charging` : « terminée » si la limite est atteinte, « interrompue » sinon, avec l'énergie ajoutée |
+| Pneus | Un pneu sous le seuil ou une alerte TPMS de la voiture. Une seule notification par pneu, réarmée quand la pression remonte au-dessus du seuil + 0,1 bar |
+
+Les heures affichées suivent le fuseau horaire de Home Assistant. Après un redémarrage de l'add-on, un pneu encore sous le seuil est signalé à nouveau.
 
 ## Liens de partage temporaires
 

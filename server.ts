@@ -19,6 +19,7 @@ import {
   MAX_DURATION_MINUTES,
   PublicShareLink,
 } from "./shareLinks";
+import { initNotifications, onTelemetryUpdate } from "./notifications";
 
 // Automatic version detection helper
 function getAppVersion(): string {
@@ -55,6 +56,7 @@ function loadAddonOptions() {
 }
 loadAddonOptions();
 initShareLinks();
+initNotifications();
 
 const app = express();
 const PORT = 3000;
@@ -488,6 +490,8 @@ function connectMqtt() {
       if (messageLogs.length > 50) {
         messageLogs.pop();
       }
+
+      onTelemetryUpdate(carTelemetry);
 
       // Broadcast update to all live streams
       broadcast({

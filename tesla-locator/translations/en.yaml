@@ -19,5 +19,23 @@ configuration:
   public_url:
     name: Public URL
     description: "Direct-access address reachable by share link recipients (e.g. https://tesla.example.com). Without it, only the link token is returned."
+  telegram_bot_token:
+    name: Telegram bot token
+    description: Token provided by @BotFather. Leave empty to disable notifications.
+  telegram_chat_id:
+    name: Telegram chat ID
+    description: "Conversation that receives the notifications (several separated by commas). Message the bot first so it is allowed to reply."
+  notify_charge_started:
+    name: Notify charge start
+    description: Message one minute after charging starts, with the power and the expected end time.
+  notify_charge_complete:
+    name: Notify charge end
+    description: Message when charging stops (limit reached or interrupted), with the energy added.
+  notify_tpms:
+    name: Notify low tyre pressure
+    description: Message when a tyre drops below the threshold or the car raises a TPMS warning.
+  tpms_alert_threshold:
+    name: Tyre alert threshold (bar)
+    description: Pressure below which a tyre triggers a notification (2.3 by default).
 network:
   3000/tcp: Web UI port for token-based direct access (leave empty to only use the Home Assistant sidebar)
