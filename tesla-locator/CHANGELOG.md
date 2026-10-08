@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.1
+
+- Image basée sur Node.js 24 (LTS) : Node.js 20 n'est plus maintenu.
+- Mise à jour des dépendances, dont les correctifs de sécurité d'`express` (`qs`, `proxy-addr`) et de `mqtt` (`ip-address`).
+
 ## 1.3.0
 
 - Écran de recharge en direct : puissance, temps restant et heure de fin, énergie ajoutée, limite de charge, autonomie et détails électriques, affiché pendant la recharge.
