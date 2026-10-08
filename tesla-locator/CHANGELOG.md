@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1
+
+- Retrait de la dépendance inutilisée `@google/genai` : image plus légère, plus d'avertissement `node-domexception` au build.
+
 ## 1.2.0
 
 - Accès en lecture seule (jeton utilisateur et liens de partage) restreint côté serveur à la position, la vitesse, la batterie, l'état et l'itinéraire : plus de topics/journaux MQTT bruts, d'adresse du broker, de kilométrage, de pression des pneus ni d'état Sentinelle.
