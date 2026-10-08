@@ -6,6 +6,8 @@ data
 .git
 .gitignore
 *.md
+# Bundled into the frontend (version history)
+!tesla-locator/CHANGELOG.md
 npm-debug.log
 docker-compose.yml
 Dockerfile

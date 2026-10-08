@@ -4,6 +4,7 @@ import { Shield, User, LogOut, Link2 } from "lucide-react";
 import { CarLocation, MqttStatus, TopicEntry, MessageLog, ConfigData, CarTelemetry, UserRole, ShareSession } from "./types";
 import SecureLogin from "./components/SecureLogin";
 import MapOverlay from "./components/MapOverlay";
+import ChangelogModal from "./components/ChangelogModal";
 import DebugPanel from "./components/DebugPanel";
 import SharePanel from "./components/SharePanel";
 
@@ -27,6 +28,7 @@ export default function App() {
 
   // App & Broker configuration
   const [appVersion, setAppVersion] = useState<string>("v2.2");
+  const [isChangelogOpen, setIsChangelogOpen] = useState<boolean>(false);
   const [brokerUrl, setBrokerUrl] = useState<string>("");
   const [topicConfig, setTopicConfig] = useState<string>("");
 
@@ -391,7 +393,14 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-sm md:text-base font-bold tracking-tight uppercase text-white">
-              Tesla Tracker <span className="text-[#E82127] text-xs font-mono ml-1.5 md:ml-2">{appVersion}</span>
+              Tesla Tracker{" "}
+              <button
+                onClick={() => setIsChangelogOpen(true)}
+                className="text-[#E82127] text-xs font-mono ml-1.5 md:ml-2 underline decoration-dotted decoration-[#E82127]/40 underline-offset-4 hover:decoration-[#E82127] hover:text-[#ff2b32] transition-colors cursor-pointer"
+                title="Voir les nouveautés de chaque version"
+              >
+                {appVersion}
+              </button>
             </h1>
           </div>
         </div>
@@ -485,6 +494,8 @@ export default function App() {
           <SharePanel isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} token={token} />
         )}
       </main>
+
+      <ChangelogModal isOpen={isChangelogOpen} onClose={() => setIsChangelogOpen(false)} currentVersion={appVersion} />
     </div>
   );
 }
