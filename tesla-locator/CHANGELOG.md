@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.2
+
+- Icône et logo de l'add-on dans la boutique Home Assistant.
+- Favicon de l'interface web (onglet du navigateur, raccourci sur l'écran d'accueil iOS).
+
 ## 1.3.1
 
 - Historique des versions : un clic sur le numéro de version dans l'en-tête affiche les nouveautés de chaque version.

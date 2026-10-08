@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b2232"/>
+      <stop offset="1" stop-color="#0b0f19"/>
+    </linearGradient>
+    <linearGradient id="pin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff4a50"/>
+      <stop offset="1" stop-color="#c3161b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.45" r="0.5">
+      <stop offset="0" stop-color="#E82127" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#E82127" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="tile"><rect width="128" height="128" rx="28"/></clipPath>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <!-- Stylised map roads -->
+  <g clip-path="url(#tile)" fill="none" stroke="#334155" stroke-linecap="round" opacity="0.55">
+    <path d="M-10 92 C 30 80, 60 104, 140 70" stroke-width="5"/>
+    <path d="M18 -10 C 30 40, 8 70, 26 140" stroke-width="3"/>
+    <path d="M-10 30 L 140 44" stroke-width="2.5"/>
+    <path d="M100 -10 C 92 40, 120 80, 104 140" stroke-width="2.5"/>
+  </g>
+  <circle cx="64" cy="58" r="50" fill="url(#glow)"/>
+  <ellipse cx="64" cy="111" rx="15" ry="4" fill="#E82127" opacity="0.4"/>
+  <!-- Location pin -->
+  <path d="M64 110 C 58 101, 33 78, 33 54 A 31 31 0 1 1 95 54 C 95 78, 70 101, 64 110 Z" fill="url(#pin)" stroke="#ffffff" stroke-opacity="0.25" stroke-width="1.5"/>
+  <!-- Car (Material Icons "directions_car", Apache 2.0) -->
+  <g transform="translate(44.8 34.8) scale(1.6)" fill="#ffffff">
+    <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.27-3.82c.14-.4.51-.68.94-.68h9.58c.43 0 .8.28.94.68L19 11H5z"/>
+  </g>
+</svg>
