@@ -6,7 +6,7 @@ Application moderne de suivi et de géolocalisation de véhicule (Tesla) en temp
 
 ## 🛠️ Prérequis
 
-- **Mode Développement** : [Node.js](https://nodejs.org/) (v20+) et `npm`
+- **Mode Développement** : [Node.js](https://nodejs.org/) v24 (`nvm use` lit le fichier `.nvmrc`) et `npm`
 - **Mode Docker / Production** : [Docker](https://docs.docker.com/get-docker/) et [Docker Compose](https://docs.docker.com/compose/install/)
 
 ---
