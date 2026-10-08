@@ -4,8 +4,9 @@ export interface CarLocation {
   lat: number;
   lon: number;
   timestamp: number;
-  topic: string;
-  rawPayload: string;
+  // Only sent to admins
+  topic?: string;
+  rawPayload?: string;
 }
 
 export interface BreadcrumbPoint {

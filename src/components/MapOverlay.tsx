@@ -32,6 +32,8 @@ export default function MapOverlay({
 }: MapOverlayProps) {
   const [timeAgo, setTimeAgo] = useState<string>("Jamais");
   const [isMinimized, setIsMinimized] = useState<boolean>(true);
+  // Sentry status, odometer and tyre pressures are not sent to read-only users
+  const isAdmin = userRole === "admin";
 
   useEffect(() => {
     if (!carLocation) {
@@ -250,6 +252,7 @@ export default function MapOverlay({
             </div>
 
             {/* Mode Sentinelle (Sentry Mode Status) */}
+            {isAdmin && (
             <div className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
               carTelemetry?.sentry_mode
                 ? "bg-rose-950/30 border-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.12)]"
@@ -279,6 +282,7 @@ export default function MapOverlay({
                 </div>
               )}
             </div>
+            )}
 
             {/* Odometer */}
             {carTelemetry && carTelemetry.odometer !== null && (
@@ -294,14 +298,18 @@ export default function MapOverlay({
             )}
 
             {/* Widget TPMS - Pression des Pneus */}
-            <TpmsWidget tpms={carTelemetry?.tpms || null} />
+            {isAdmin && <TpmsWidget tpms={carTelemetry?.tpms || null} />}
 
             <div className="flex items-center justify-between text-xs text-slate-400 bg-slate-950/40 p-2.5 rounded-xl border border-slate-850">
               <div className="flex items-center gap-1.5 min-w-0">
                 <Compass className="w-4 h-4 text-[#E82127] shrink-0" />
-                <span className="text-[10px] font-mono truncate text-slate-400" title={carLocation.topic}>
-                  Topic : <span className="text-[#E82127] font-bold">{carLocation.topic}</span>
-                </span>
+                {carLocation.topic ? (
+                  <span className="text-[10px] font-mono truncate text-slate-400" title={carLocation.topic}>
+                    Topic : <span className="text-[#E82127] font-bold">{carLocation.topic}</span>
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-semibold text-slate-400">Dernière position</span>
+                )}
               </div>
               <div className="flex items-center gap-1 shrink-0 font-semibold text-slate-500 text-[10px]">
                 <RefreshCw className="w-3 h-3 text-[#E82127] animate-spin" style={{ animationDuration: "4s" }} />

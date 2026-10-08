@@ -15,7 +15,7 @@ configuration:
     description: Accès complet (console MQTT, simulateur) pour l'accès direct par le port réseau. Non utilisé via la barre latérale Home Assistant.
   user_access_token:
     name: Jeton utilisateur
-    description: Accès en lecture seule (carte et télémétrie) pour l'accès direct par le port réseau.
+    description: Accès en lecture seule (position, vitesse, batterie, état, itinéraire) pour l'accès direct par le port réseau.
   public_url:
     name: URL publique
     description: "Adresse d'accès direct joignable par les destinataires des liens de partage (ex : https://tesla.mondomaine.fr). Sans elle, seul le jeton du lien est fourni."

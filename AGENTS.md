@@ -61,6 +61,7 @@ docker compose restart
 
 - All API endpoints requiring privacy (`/api/data`, `/api/stream`, `/api/test-publish`) **MUST** verify `req.query.token === SECURE_ACCESS_TOKEN`.
 - `/api/config` returns `{ authorized: boolean }` to allow frontend verification without leaking secret contents.
+- Read-only payloads (`user` token, share links) go through `restrictForRole` in `server.ts`: any new field sent by `/api/data` or `/api/stream` must be reviewed there.
 - Do not log sensitive secrets (like passwords or full access tokens) to public output or client SSE payloads.
 
 ---

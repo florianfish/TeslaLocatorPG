@@ -19,7 +19,7 @@ Ces options remplacent le fichier `.env` de l'installation Docker. Après modifi
 | Utilisateur / mot de passe MQTT | `MQTT_USERNAME` / `MQTT_PASSWORD` | Identifiants du broker, vides si non requis |
 | Topic de position | `MQTT_TOPIC` | Par défaut `teslamate/cars/1/location` |
 | Jeton administrateur | `ADMIN_ACCESS_TOKEN` | Accès complet en accès direct |
-| Jeton utilisateur | `USER_ACCESS_TOKEN` | Accès en lecture seule en accès direct |
+| Jeton utilisateur | `USER_ACCESS_TOKEN` | Accès en lecture seule en accès direct (position, vitesse, batterie, état, itinéraire ; sans données MQTT brutes, kilométrage, pneus ni Sentinelle) |
 | URL publique | `PUBLIC_URL` | Adresse d'accès direct utilisée dans les liens de partage (ex : `https://tesla.mondomaine.fr`) |
 
 ## Accès

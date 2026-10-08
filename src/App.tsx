@@ -293,7 +293,7 @@ export default function App() {
           Lat : ${lat.toFixed(6)}<br/>
           Lon : ${lon.toFixed(6)}
         </div>
-        <div class="text-[9px] text-slate-400 mt-2 italic break-all">Topic : ${topic}</div>
+        ${topic ? `<div class="text-[9px] text-slate-400 mt-2 italic break-all">Topic : ${topic}</div>` : ""}
       </div>
     `, {
       closeButton: false,
@@ -356,7 +356,12 @@ export default function App() {
     );
   }
 
-  const formattedBroker = brokerUrl ? brokerUrl.replace(/^mqtts?:\/\//, "") : "Non configuré";
+  // Broker address is only disclosed to admins: read-only users see the connection state instead
+  const formattedBroker = brokerUrl
+    ? brokerUrl.replace(/^mqtts?:\/\//, "")
+    : userRole === "admin"
+      ? "Non configuré"
+      : mqttStatus === "connected" ? "En direct" : mqttStatus === "connecting" ? "Connexion..." : "Hors ligne";
 
   return (
     <div className="w-screen h-screen bg-slate-950 text-slate-100 font-sans flex flex-col overflow-hidden select-none relative">

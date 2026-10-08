@@ -66,7 +66,7 @@ Depuis la barre latérale (Ingress), aucun jeton n'est demandé : l'authentifica
 
 ## 🔐 Sécurité & Jeton d'Accès
 
-L'accès à l'application est protégé par les jetons `ADMIN_ACCESS_TOKEN` (accès complet) et `USER_ACCESS_TOKEN` (lecture seule) définis dans `.env`.
+L'accès à l'application est protégé par les jetons `ADMIN_ACCESS_TOKEN` (accès complet) et `USER_ACCESS_TOKEN` (lecture seule) définis dans `.env`. En lecture seule, le serveur ne transmet que la position, la vitesse, la batterie, l'état et l'itinéraire (ni données MQTT brutes, ni adresse du broker, ni kilométrage, pneus ou Sentinelle).
 
 Vous pouvez vous authentifier de deux manières :
 1. **Sur l'écran d'accueil** : Saisissez simplement votre jeton dans le formulaire de connexion.

@@ -184,14 +184,39 @@ const messageLogs: Array<{
   parsedGps?: { lat: number; lon: number };
 }> = [];
 
+// Read-only users (user token, share links) only get what the map needs: no raw MQTT
+// topics/logs/payloads, no broker details, and no odometer, tyre pressure or Sentry status.
+const USER_HIDDEN_TELEMETRY = ["odometer", "tpms", "sentry_mode"] as const;
+
+function restrictForRole(role: Role, data: any) {
+  if (role === "admin") return data;
+  const { topics, logs, message, ...rest } = data;
+  if (rest.carLocation) {
+    const { lat, lon, timestamp } = rest.carLocation;
+    rest.carLocation = { lat, lon, timestamp };
+  }
+  if (rest.carTelemetry) {
+    rest.carTelemetry = { ...rest.carTelemetry };
+    for (const key of USER_HIDDEN_TELEMETRY) rest.carTelemetry[key] = null;
+  }
+  // Broker errors can contain hostnames or IP addresses
+  if (rest.mqttError) rest.mqttError = "Connexion au broker MQTT impossible.";
+  if (rest.error) rest.error = "Connexion au broker MQTT impossible.";
+  return rest;
+}
+
 // SSE Clients for real-time streaming (shareId set when connected through a temporary share link)
-const clients: Array<{ res: express.Response; shareId?: string }> = [];
+const clients: Array<{ res: express.Response; role: Role; shareId?: string }> = [];
 
 // Helper to broadcast events to all connected SSE clients
 function broadcast(data: any) {
-  clients.forEach(({ res: client }) => {
+  const serialized = {
+    admin: JSON.stringify(data),
+    user: JSON.stringify(restrictForRole("user", data)),
+  };
+  clients.forEach(({ res: client, role }) => {
     try {
-      client.write(`data: ${JSON.stringify(data)}\n\n`);
+      client.write(`data: ${serialized[role]}\n\n`);
     } catch (err) {
       console.error("Error broadcasting to SSE client:", err);
     }
@@ -496,9 +521,9 @@ app.get("/api/config", (req, res) => {
     share: auth?.share ? { label: auth.share.label, expiresAt: auth.share.expiresAt } : undefined,
     ingress: isIngressRequest(req),
     version: getAppVersion(),
-    // Broker details are only disclosed to authorized clients
-    brokerUrl: isValid ? rawBrokerUrl : "",
-    topicConfig: isValid ? MQTT_TOPIC : "",
+    // Broker details are only disclosed to admins
+    brokerUrl: auth?.role === "admin" ? rawBrokerUrl : "",
+    topicConfig: auth?.role === "admin" ? MQTT_TOPIC : "",
     defaultLocation: { lat: 46.2276, lon: 2.2137 } // Center of France
   });
 });
@@ -510,7 +535,7 @@ app.get("/api/data", (req, res) => {
     return res.status(403).json({ error: "Unauthorized. Missing or invalid secure token." });
   }
 
-  res.json({
+  res.json(restrictForRole(role, {
     role,
     mqttStatus,
     mqttError,
@@ -518,7 +543,7 @@ app.get("/api/data", (req, res) => {
     carTelemetry,
     topics: Array.from(topicsMap.entries()),
     logs: messageLogs,
-  });
+  }));
 });
 
 // Real-time Event Stream (SSE)
@@ -540,7 +565,7 @@ app.get("/api/stream", (req, res) => {
   res.write(":\n\n");
 
   // Send initial load
-  const initialPayload = {
+  const initialPayload = restrictForRole(role, {
     type: "init",
     role,
     mqttStatus,
@@ -549,11 +574,11 @@ app.get("/api/stream", (req, res) => {
     carTelemetry,
     topics: Array.from(topicsMap.entries()),
     logs: messageLogs,
-  };
+  });
   res.write(`data: ${JSON.stringify(initialPayload)}\n\n`);
 
   // Keep track of active stream connections
-  const client = { res, shareId: auth.share?.id };
+  const client = { res, role, shareId: auth.share?.id };
   clients.push(client);
 
   req.on("close", () => {

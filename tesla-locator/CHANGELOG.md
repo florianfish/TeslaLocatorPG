@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+
+- Accès en lecture seule (jeton utilisateur et liens de partage) restreint côté serveur à la position, la vitesse, la batterie, l'état et l'itinéraire : plus de topics/journaux MQTT bruts, d'adresse du broker, de kilométrage, de pression des pneus ni d'état Sentinelle.
+
 ## 1.1.0
 
 - Liens de partage temporaires en lecture seule : création, liste et révocation depuis le bouton **Partager**, coupure automatique à l'expiration.
