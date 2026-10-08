@@ -14,8 +14,10 @@ import {
   FileCode,
   MapPin,
   Clock,
-  Eye
+  Eye,
+  BellRing
 } from "lucide-react";
+import NotificationsTab from "./NotificationsTab";
 import { MessageLog, TopicEntry, MqttStatus } from "../types";
 
 interface DebugPanelProps {
@@ -41,7 +43,7 @@ export default function DebugPanel({
   token,
   onSelectTopicCoordinate,
 }: DebugPanelProps) {
-  const [activeTab, setActiveTab] = useState<"topics" | "logs" | "publish">("topics");
+  const [activeTab, setActiveTab] = useState<"topics" | "logs" | "publish" | "notifications">("topics");
 
   // Publishing form state
   const [pubTopic, setPubTopic] = useState("teslamate/cars/1/location");
@@ -109,7 +111,7 @@ export default function DebugPanel({
         <div className="flex items-center gap-2">
           <Server className="w-5 h-5 text-cyan-400" />
           <div>
-            <h2 className="text-sm font-bold text-white">Console Console & MQTT</h2>
+            <h2 className="text-sm font-bold text-white">Console & MQTT</h2>
             <p className="text-[10px] text-slate-500 font-medium truncate max-w-[240px]" title={brokerUrl}>
               {brokerUrl}
             </p>
@@ -179,10 +181,23 @@ export default function DebugPanel({
           <Send className="w-3.5 h-3.5 inline mr-1.5" />
           Simulateur
         </button>
+        <button
+          onClick={() => setActiveTab("notifications")}
+          className={`flex-1 py-3 text-center border-b font-medium transition-colors cursor-pointer ${
+            activeTab === "notifications"
+              ? "text-cyan-400 border-cyan-500 bg-slate-900/50"
+              : "text-slate-400 border-transparent hover:text-slate-200 hover:bg-slate-800/20"
+          }`}
+        >
+          <BellRing className="w-3.5 h-3.5 inline mr-1.5" />
+          Alertes
+        </button>
       </div>
 
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto p-4">
+        {activeTab === "notifications" && <NotificationsTab token={token} />}
+
         {/* TOPICS TAB */}
         {activeTab === "topics" && (
           <div className="space-y-3">

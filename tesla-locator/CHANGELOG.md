@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.3
+
+- Nouvelles alertes Telegram, chacune activable et réglable : fin de charge imminente, batterie basse, voiture laissée ouverte (déverrouillée, porte, coffre, frunk ou fenêtre ouverts, garée sans personne à bord).
+- Commandes du bot Telegram : `/position`, `/etat`, `/charge` et `/partage` (lien de partage temporaire), réservées aux chats configurés.
+- Onglet **Alertes** dans la console : état de la configuration Telegram et bouton d'envoi d'une notification de test, avec le résultat pour chaque chat.
+- Le chat ID Telegram s'obtient désormais dans le journal de l'add-on en écrivant au bot.
+- Correction du titre « Console Console & MQTT ».
+
 ## 1.3.2
 
 - Icône et logo de l'add-on dans la boutique Home Assistant.

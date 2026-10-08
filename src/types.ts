@@ -96,6 +96,16 @@ export interface ChargingData {
   charge_port_door_open: boolean | null;
 }
 
+// Lock and openings: admin only (null for read-only users)
+export interface SecurityData {
+  locked: boolean | null;
+  doors_open: boolean | null;
+  trunk_open: boolean | null;
+  frunk_open: boolean | null;
+  windows_open: boolean | null;
+  is_user_present: boolean | null;
+}
+
 export interface CarTelemetry {
   speed: number | null;
   battery_level: number | null;
@@ -107,5 +117,6 @@ export interface CarTelemetry {
   active_route: ActiveRoute | null;
   tpms: TpmsData | null;
   charging: ChargingData | null;
+  security: SecurityData | null;
 }
 

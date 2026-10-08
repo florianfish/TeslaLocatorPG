@@ -31,11 +31,32 @@ configuration:
   notify_charge_complete:
     name: Notify charge end
     description: Message when charging stops (limit reached or interrupted), with the energy added.
+  notify_charge_ending_soon:
+    name: Notify charge ending soon
+    description: Message when the remaining charging time drops below the delay below.
+  charge_ending_soon_minutes:
+    name: Charge ending soon delay (min)
+    description: Remaining charging time that triggers the notification (15 by default).
   notify_tpms:
     name: Notify low tyre pressure
     description: Message when a tyre drops below the threshold or the car raises a TPMS warning.
   tpms_alert_threshold:
     name: Tyre alert threshold (bar)
     description: Pressure below which a tyre triggers a notification (2.3 by default).
+  notify_battery_low:
+    name: Notify low battery
+    description: Message when the battery drops below the threshold while not charging.
+  battery_low_threshold:
+    name: Low battery threshold (%)
+    description: Level below which a notification is sent (20 by default).
+  notify_left_open:
+    name: Notify car left open
+    description: Message when the car, parked with nobody inside, stays unlocked or with a door, trunk or window open.
+  left_open_delay_minutes:
+    name: Left open alert delay (min)
+    description: How long the car must stay open before the notification (10 by default).
+  telegram_commands:
+    name: Telegram bot commands
+    description: "Answers /position, /etat, /charge and /partage, only in the configured chats."
 network:
   3000/tcp: Web UI port for token-based direct access (leave empty to only use the Home Assistant sidebar)

@@ -31,11 +31,32 @@ configuration:
   notify_charge_complete:
     name: Notifier la fin de charge
     description: Message quand la recharge s'arrête (limite atteinte ou interrompue), avec l'énergie ajoutée.
+  notify_charge_ending_soon:
+    name: Notifier la fin de charge imminente
+    description: Message quand le temps de charge restant passe sous le délai ci-dessous.
+  charge_ending_soon_minutes:
+    name: Délai avant fin de charge (min)
+    description: Temps de charge restant qui déclenche la notification (15 par défaut).
   notify_tpms:
     name: Notifier une pression de pneu basse
     description: Message quand un pneu passe sous le seuil ou que la voiture signale une alerte TPMS.
   tpms_alert_threshold:
     name: Seuil d'alerte pneus (bar)
     description: Pression en dessous de laquelle un pneu déclenche une notification (2.3 par défaut).
+  notify_battery_low:
+    name: Notifier une batterie basse
+    description: Message quand la batterie passe sous le seuil hors recharge.
+  battery_low_threshold:
+    name: Seuil de batterie basse (%)
+    description: Niveau en dessous duquel une notification est envoyée (20 par défaut).
+  notify_left_open:
+    name: Notifier une voiture laissée ouverte
+    description: Message quand la voiture, garée sans personne à bord, reste déverrouillée ou avec une porte, un coffre ou une fenêtre ouverts.
+  left_open_delay_minutes:
+    name: Délai avant alerte d'ouverture (min)
+    description: Durée pendant laquelle la voiture doit rester ouverte avant la notification (10 par défaut).
+  telegram_commands:
+    name: Commandes du bot Telegram
+    description: "Répond aux commandes /position, /etat, /charge et /partage, uniquement dans les chats configurés."
 network:
   3000/tcp: Port de l'interface web pour un accès direct par jeton (laisser vide pour n'utiliser que la barre latérale Home Assistant)

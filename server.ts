@@ -19,7 +19,9 @@ import {
   MAX_DURATION_MINUTES,
   PublicShareLink,
 } from "./shareLinks";
-import { initNotifications, onTelemetryUpdate } from "./notifications";
+import { initTelegram, isTelegramConfigured } from "./telegram";
+import { initNotifications, onTelemetryUpdate, getNotificationStatus, sendTestNotification } from "./notifications";
+import { initTelegramBot } from "./telegramBot";
 
 // Automatic version detection helper
 function getAppVersion(): string {
@@ -56,6 +58,7 @@ function loadAddonOptions() {
 }
 loadAddonOptions();
 initShareLinks();
+initTelegram();
 initNotifications();
 
 const app = express();
@@ -169,7 +172,13 @@ let carTelemetry = {
     tpms_soft_warning_rr?: boolean | null;
   } | null,
   charging: null as Record<ChargingField, number | boolean | null> | null,
+  // Lock and openings: used by the "left open" alert and the bot, never sent to read-only users
+  security: null as Record<SecurityField, boolean | null> | null,
 };
+
+// TeslaMate lock / openings / presence topics (teslamate/cars/<id>/<field>), all booleans
+const SECURITY_FIELDS = ["locked", "doors_open", "trunk_open", "frunk_open", "windows_open", "is_user_present"] as const;
+type SecurityField = (typeof SECURITY_FIELDS)[number];
 
 // TeslaMate charging topics (teslamate/cars/<id>/<field>). TeslaMate publishes an empty
 // payload when a value no longer applies (e.g. time_to_full_charge once charging stops).
@@ -203,8 +212,8 @@ const messageLogs: Array<{
 }> = [];
 
 // Read-only users (user token, share links) only get what the map needs: no raw MQTT
-// topics/logs/payloads, no broker details, and no odometer, tyre pressure or Sentry status.
-const USER_HIDDEN_TELEMETRY = ["odometer", "tpms", "sentry_mode"] as const;
+// topics/logs/payloads, no broker details, and no odometer, tyre pressure, Sentry or lock/openings status.
+const USER_HIDDEN_TELEMETRY = ["odometer", "tpms", "sentry_mode", "security"] as const;
 
 function restrictForRole(role: Role, data: any) {
   if (role === "admin") return data;
@@ -395,7 +404,7 @@ function connectMqtt() {
           `teslamate/cars/${carId}/tpms_soft_warning_fr`,
           `teslamate/cars/${carId}/tpms_soft_warning_rl`,
           `teslamate/cars/${carId}/tpms_soft_warning_rr`,
-          ...[...CHARGING_NUMERIC_FIELDS, ...CHARGING_BOOLEAN_FIELDS].map((field) => `teslamate/cars/${carId}/${field}`)
+          ...[...CHARGING_NUMERIC_FIELDS, ...CHARGING_BOOLEAN_FIELDS, ...SECURITY_FIELDS].map((field) => `teslamate/cars/${carId}/${field}`)
         );
       }
 
@@ -466,7 +475,10 @@ function connectMqtt() {
       }
 
       const chargingMatch = topic.match(/^teslamate\/cars\/[^/]+\/([a-z_]+)$/);
-      if (chargingMatch) applyChargingData(chargingMatch[1], rawPayload);
+      if (chargingMatch) {
+        applyChargingData(chargingMatch[1], rawPayload);
+        applySecurityData(chargingMatch[1], rawPayload);
+      }
 
       // Update car location if GPS coordinates detected on the location topic
       if (parsedGps && isLocationTopic(topic)) {
@@ -708,6 +720,15 @@ app.delete("/api/share-links/:id", (req, res) => {
 });
 
 // Helper function to update TPMS state safely
+function applySecurityData(field: string, rawPayload: string) {
+  if (!(SECURITY_FIELDS as readonly string[]).includes(field)) return;
+  if (!carTelemetry.security) {
+    carTelemetry.security = Object.fromEntries(SECURITY_FIELDS.map((key) => [key, null])) as Record<SecurityField, boolean | null>;
+  }
+  const trimmed = rawPayload.trim().toLowerCase();
+  carTelemetry.security[field as SecurityField] = trimmed === "" ? null : trimmed === "true";
+}
+
 function applyChargingData(field: string, rawPayload: string) {
   const isNumeric = (CHARGING_NUMERIC_FIELDS as readonly string[]).includes(field);
   const isBoolean = (CHARGING_BOOLEAN_FIELDS as readonly string[]).includes(field);
@@ -781,6 +802,26 @@ function applyTpmsData(parsedVal: any, subTopicType?: string) {
     }
   }
 }
+
+// ================= TELEGRAM NOTIFICATIONS (admin) =================
+
+app.get("/api/notifications", (req, res) => {
+  if (getRequestRole(req) !== "admin") {
+    return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
+  }
+  res.json(getNotificationStatus());
+});
+
+app.post("/api/notifications/test", async (req, res) => {
+  if (getRequestRole(req) !== "admin") {
+    return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
+  }
+  if (!isTelegramConfigured()) {
+    return res.status(400).json({ error: "Telegram n'est pas configuré : renseigner le jeton du bot et le chat ID." });
+  }
+  const results = await sendTestNotification();
+  res.json({ results });
+});
 
 // Support publishing custom coordinates for testing / simulation
 app.post("/api/test-publish", (req, res) => {
@@ -945,5 +986,23 @@ async function startServer() {
     console.log(`Server listening on port ${PORT} (IPv4 + IPv6)`);
   });
 }
+
+initTelegramBot({
+  getVehicle: () => ({ location: carLocation, telemetry: carTelemetry }),
+  createShareLink: (label, durationText) => {
+    // Without a public URL the link could not be opened from outside: refuse rather than create a dead link
+    const baseUrl = process.env.PUBLIC_URL?.replace(/\/+$/, "");
+    if (!baseUrl) {
+      return { ok: false, error: "Aucune URL publique configurée (option « URL publique » de l'add-on) : le lien ne pourrait pas être ouvert." };
+    }
+    const durationMinutes = parseDurationMinutes(durationText);
+    if (durationMinutes === null || durationMinutes < MIN_DURATION_MINUTES || durationMinutes > MAX_DURATION_MINUTES) {
+      return { ok: false, error: `Durée invalide : entre ${MIN_DURATION_MINUTES} min et ${MAX_DURATION_MINUTES / 1440} jours (ex : 30m, 2h, 3d).` };
+    }
+    const { link, token } = createShareLink(label.substring(0, 60), durationMinutes);
+    console.log(`Share link created from Telegram: "${link.label}" (${link.id}), expires ${new Date(link.expiresAt).toISOString()}`);
+    return { ok: true, url: `${baseUrl}/?token=${encodeURIComponent(token)}`, expiresAt: link.expiresAt };
+  },
+});
 
 startServer();

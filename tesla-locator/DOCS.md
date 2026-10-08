@@ -22,8 +22,10 @@ Ces options remplacent le fichier `.env` de l'installation Docker. Après modifi
 | Jeton utilisateur | `USER_ACCESS_TOKEN` | Accès en lecture seule en accès direct (position, vitesse, batterie, état, itinéraire ; sans données MQTT brutes, kilométrage, pneus ni Sentinelle) |
 | URL publique | `PUBLIC_URL` | Adresse d'accès direct utilisée dans les liens de partage (ex : `https://tesla.mondomaine.fr`) |
 | Jeton du bot / Chat ID Telegram | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | Active les notifications Telegram (voir ci-dessous) |
-| Notifier début / fin de charge, pneus | `NOTIFY_CHARGE_STARTED` / `NOTIFY_CHARGE_COMPLETE` / `NOTIFY_TPMS` | Choix des notifications envoyées (toutes activées par défaut) |
-| Seuil d'alerte pneus | `TPMS_ALERT_THRESHOLD` | En bar, `2.3` par défaut |
+| Notifier début / fin / fin imminente de charge | `NOTIFY_CHARGE_STARTED` / `NOTIFY_CHARGE_COMPLETE` / `NOTIFY_CHARGE_ENDING_SOON` | Toutes activées par défaut |
+| Notifier pneus, batterie basse, voiture ouverte | `NOTIFY_TPMS` / `NOTIFY_BATTERY_LOW` / `NOTIFY_LEFT_OPEN` | Toutes activées par défaut |
+| Seuils et délais | `TPMS_ALERT_THRESHOLD` / `BATTERY_LOW_THRESHOLD` / `CHARGE_ENDING_SOON_MINUTES` / `LEFT_OPEN_DELAY_MINUTES` | `2.3` bar, `20` %, `15` min, `10` min par défaut |
+| Commandes du bot Telegram | `TELEGRAM_COMMANDS` | `/position`, `/etat`, `/charge`, `/partage` (activées par défaut) |
 
 ## Accès
 
@@ -33,17 +35,35 @@ Ces options remplacent le fichier `.env` de l'installation Docker. Après modifi
 ## Notifications Telegram
 
 1. Dans Telegram, écrire à **@BotFather**, envoyer `/newbot` et copier le jeton fourni.
-2. Envoyer un message quelconque à votre nouveau bot (sans cela, il ne peut pas vous écrire).
-3. Récupérer votre chat ID : ouvrir `https://api.telegram.org/bot<JETON>/getUpdates` et relever `"chat":{"id":…}`. Pour un groupe, ajouter le bot au groupe ; l'identifiant commence alors par `-`.
-4. Renseigner **Jeton du bot Telegram** et **Chat ID Telegram**, choisir les notifications, puis redémarrer l'add-on. Le journal de l'add-on confirme les notifications actives.
+2. Renseigner **Jeton du bot Telegram** et redémarrer l'add-on.
+3. Envoyer un message quelconque à votre bot, puis ouvrir le **Journal** de l'add-on : la ligne `Telegram: ignored message from chat 123456789…` donne votre chat ID. Pour un groupe, ajouter le bot au groupe et y écrire ; l'identifiant commence alors par `-`.
+4. Renseigner **Chat ID Telegram** (plusieurs séparés par des virgules), choisir les notifications, puis redémarrer l'add-on.
+5. Vérifier avec **Console & MQTT → Alertes → Envoyer une notification de test** : le résultat s'affiche pour chaque chat (ex : chat introuvable, bot bloqué).
 
 | Notification | Déclenchement |
 | --- | --- |
 | Début de charge | Une minute après le passage à l'état `charging` : niveau, limite, puissance et heure de fin prévue |
+| Fin de charge imminente | Quand le temps de charge restant passe sous le délai réglé (15 min par défaut), une fois par recharge |
 | Fin de charge | À la sortie de l'état `charging` : « terminée » si la limite est atteinte, « interrompue » sinon, avec l'énergie ajoutée |
 | Pneus | Un pneu sous le seuil ou une alerte TPMS de la voiture. Une seule notification par pneu, réarmée quand la pression remonte au-dessus du seuil + 0,1 bar |
+| Batterie basse | Batterie sous le seuil hors recharge. Réarmée à la recharge ou au-dessus du seuil + 5 % |
+| Voiture laissée ouverte | Voiture garée (rapport P) sans personne à bord, déverrouillée ou avec une porte, le coffre, le frunk ou une fenêtre ouverts pendant le délai réglé (10 min par défaut). Réarmée au verrouillage ou au retour d'un occupant |
 
-Les heures affichées suivent le fuseau horaire de Home Assistant. Après un redémarrage de l'add-on, un pneu encore sous le seuil est signalé à nouveau.
+Les heures affichées suivent le fuseau horaire de Home Assistant. Après un redémarrage de l'add-on, une alerte toujours en cours (pneu, batterie, ouverture) est signalée à nouveau. TeslaMate ne publie pas les déclenchements de la Sentinelle : seule son activation est connue, ce qui ne permet pas d'alerter sur une intrusion.
+
+### Commandes du bot
+
+Le bot ne répond qu'aux chats configurés ; les autres messages sont ignorés (et leur chat ID noté dans le journal).
+
+| Commande | Réponse |
+| --- | --- |
+| `/position` | Position sur une carte, état, batterie et destination en cours de navigation |
+| `/etat` | Batterie et autonomie, verrouillage et ouvertures, Sentinelle, température, pression des pneus |
+| `/charge` | Recharge en cours (puissance, énergie ajoutée, heure de fin) ou niveau et limite de charge |
+| `/partage [durée] [libellé]` | Crée un lien de partage temporaire (ex : `/partage 30m`, `/partage 2h Famille`, 2 h par défaut). Exige l'option **URL publique** |
+| `/aide` | Liste des commandes |
+
+Une seule instance peut utiliser un bot à la fois : ne pas réutiliser le même jeton dans une autre installation de Tesla Tracker ou un autre programme qui lit les messages du bot.
 
 ## Liens de partage temporaires
 
