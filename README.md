@@ -73,6 +73,8 @@ Vous pouvez vous authentifier de deux manières :
 2. **Via l'URL** : Ajoutez le paramètre `token` dans votre navigateur :
    `http://localhost:3000/?token=VOTRE_TOKEN_ICI`
 
+**Liens de partage temporaires** : un administrateur peut créer des liens en lecture seule à durée limitée via le bouton **Partager**, ou par l'API `POST /api/share-links` (en-tête `Authorization: Bearer <ADMIN_ACCESS_TOKEN>`), par exemple depuis Home Assistant. Définir `PUBLIC_URL` pour que les liens pointent vers l'adresse publique. Les liens sont stockés dans `./data` (volume Docker). Détails et exemple Home Assistant : [tesla-locator/DOCS.md](tesla-locator/DOCS.md#liens-de-partage-temporaires).
+
 ---
 
 ## 🔄 Mise à jour et Maintenance

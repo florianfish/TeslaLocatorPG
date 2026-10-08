@@ -6,6 +6,19 @@ import dotenv from "dotenv";
 import mqtt from "mqtt";
 import { execSync } from "child_process";
 import { createServer as createViteServer } from "vite";
+import {
+  initShareLinks,
+  createShareLink,
+  findShareLink,
+  isShareLinkActive,
+  listShareLinks,
+  revokeShareLink,
+  purgeExpiredShareLinks,
+  parseDurationMinutes,
+  MIN_DURATION_MINUTES,
+  MAX_DURATION_MINUTES,
+  PublicShareLink,
+} from "./shareLinks";
 
 // Automatic version detection helper
 function getAppVersion(): string {
@@ -41,6 +54,7 @@ function loadAddonOptions() {
   }
 }
 loadAddonOptions();
+initShareLinks();
 
 const app = express();
 const PORT = 3000;
@@ -48,7 +62,9 @@ const PORT = 3000;
 app.use(express.json());
 
 // Secrets & Token configuration
-function getRoleFromToken(token: any): "admin" | "user" | null {
+type Role = "admin" | "user";
+
+function getRoleFromToken(token: any): Role | null {
   if (!token || typeof token !== "string") return null;
 
   const adminToken = process.env.ADMIN_ACCESS_TOKEN;
@@ -70,9 +86,34 @@ function isIngressRequest(req: express.Request): boolean {
   return req.socket.remoteAddress?.replace(/^::ffff:/, "") === INGRESS_PROXY_IP;
 }
 
-function getRequestRole(req: express.Request): "admin" | "user" | null {
-  if (isIngressRequest(req)) return "admin";
-  return getRoleFromToken(req.query.token);
+// Token from `?token=` or, for API clients such as Home Assistant's rest_command, `Authorization: Bearer`
+function getRequestToken(req: express.Request): string | null {
+  const auth = req.headers.authorization;
+  if (auth?.startsWith("Bearer ")) return auth.substring(7).trim();
+  return typeof req.query.token === "string" ? req.query.token : null;
+}
+
+function getRequestAuth(req: express.Request): { role: Role; share?: PublicShareLink } | null {
+  if (isIngressRequest(req)) return { role: "admin" };
+  const token = getRequestToken(req);
+  const role = getRoleFromToken(token);
+  if (role) return { role };
+  // Temporary share links grant read-only access until they expire or are revoked
+  const share = token ? findShareLink(token) : null;
+  return share ? { role: "user", share } : null;
+}
+
+function getRequestRole(req: express.Request): Role | null {
+  return getRequestAuth(req)?.role ?? null;
+}
+
+// Public base URL used to build share links (the Ingress URL requires a Home Assistant login)
+function getPublicBaseUrl(req: express.Request): string | null {
+  const configured = process.env.PUBLIC_URL;
+  if (configured) return configured.replace(/\/+$/, "");
+  if (isIngressRequest(req)) return null;
+  const proto = (req.headers["x-forwarded-proto"] as string | undefined)?.split(",")[0] || req.protocol;
+  return `${proto}://${req.get("host")}`;
 }
 
 // MQTT Configuration
@@ -143,12 +184,12 @@ const messageLogs: Array<{
   parsedGps?: { lat: number; lon: number };
 }> = [];
 
-// SSE Clients for real-time streaming
-const clients: express.Response[] = [];
+// SSE Clients for real-time streaming (shareId set when connected through a temporary share link)
+const clients: Array<{ res: express.Response; shareId?: string }> = [];
 
 // Helper to broadcast events to all connected SSE clients
 function broadcast(data: any) {
-  clients.forEach((client) => {
+  clients.forEach(({ res: client }) => {
     try {
       client.write(`data: ${JSON.stringify(data)}\n\n`);
     } catch (err) {
@@ -446,12 +487,13 @@ connectMqtt();
 
 // Endpoint to fetch basic config and check token validity
 app.get("/api/config", (req, res) => {
-  const role = getRequestRole(req);
-  const isValid = role !== null;
+  const auth = getRequestAuth(req);
+  const isValid = auth !== null;
 
   res.json({
     authorized: isValid,
-    role: role || undefined,
+    role: auth?.role,
+    share: auth?.share ? { label: auth.share.label, expiresAt: auth.share.expiresAt } : undefined,
     ingress: isIngressRequest(req),
     version: getAppVersion(),
     // Broker details are only disclosed to authorized clients
@@ -481,10 +523,11 @@ app.get("/api/data", (req, res) => {
 
 // Real-time Event Stream (SSE)
 app.get("/api/stream", (req, res) => {
-  const role = getRequestRole(req);
-  if (!role) {
+  const auth = getRequestAuth(req);
+  if (!auth) {
     return res.status(403).send("Unauthorized. Missing or invalid secure token.");
   }
+  const { role } = auth;
 
   // Set SSE headers (including X-Accel-Buffering to prevent proxy buffering)
   res.setHeader("Content-Type", "text/event-stream");
@@ -510,10 +553,11 @@ app.get("/api/stream", (req, res) => {
   res.write(`data: ${JSON.stringify(initialPayload)}\n\n`);
 
   // Keep track of active stream connections
-  clients.push(res);
+  const client = { res, shareId: auth.share?.id };
+  clients.push(client);
 
   req.on("close", () => {
-    const index = clients.indexOf(res);
+    const index = clients.indexOf(client);
     if (index !== -1) {
       clients.splice(index, 1);
     }
@@ -524,12 +568,77 @@ app.get("/api/stream", (req, res) => {
 setInterval(() => {
   clients.forEach((client) => {
     try {
-      client.write(`data: ${JSON.stringify({ type: "ping" })}\n\n`);
+      client.res.write(`data: ${JSON.stringify({ type: "ping" })}\n\n`);
     } catch (err) {
       // client error or closed connection (handled by req.on("close"))
     }
   });
 }, 10000);
+
+// Close streams opened with a share link that has expired or been revoked
+function closeInactiveShareStreams() {
+  clients
+    .filter((client) => client.shareId && !isShareLinkActive(client.shareId))
+    .forEach((client) => {
+      try {
+        client.res.write(`data: ${JSON.stringify({ type: "expired" })}\n\n`);
+        client.res.end();
+      } catch {
+        // already closed
+      }
+    });
+}
+
+setInterval(() => {
+  closeInactiveShareStreams();
+  purgeExpiredShareLinks();
+}, 15000);
+
+// ================= SHARE LINKS (admin) =================
+
+app.get("/api/share-links", (req, res) => {
+  if (getRequestRole(req) !== "admin") {
+    return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
+  }
+  res.json({ links: listShareLinks(), publicUrl: getPublicBaseUrl(req) });
+});
+
+app.post("/api/share-links", (req, res) => {
+  if (getRequestRole(req) !== "admin") {
+    return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
+  }
+
+  const durationMinutes = parseDurationMinutes(req.body?.duration ?? "2h");
+  if (durationMinutes === null || durationMinutes < MIN_DURATION_MINUTES || durationMinutes > MAX_DURATION_MINUTES) {
+    return res.status(400).json({
+      error: `Durée invalide : utiliser des minutes ou un suffixe m/h/d (ex : "30m", "2h", "7d"), entre ${MIN_DURATION_MINUTES} min et ${MAX_DURATION_MINUTES / 1440} jours.`,
+    });
+  }
+  const rawLabel = typeof req.body?.label === "string" ? req.body.label.trim() : "";
+  const label = rawLabel.substring(0, 60) || "Lien de partage";
+
+  const { link, token } = createShareLink(label, durationMinutes);
+  const baseUrl = getPublicBaseUrl(req);
+  console.log(`Share link created: "${link.label}" (${link.id}), expires ${new Date(link.expiresAt).toISOString()}`);
+
+  res.status(201).json({
+    ...link,
+    token,
+    url: baseUrl ? `${baseUrl}/?token=${encodeURIComponent(token)}` : null,
+  });
+});
+
+app.delete("/api/share-links/:id", (req, res) => {
+  if (getRequestRole(req) !== "admin") {
+    return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
+  }
+  if (!revokeShareLink(req.params.id)) {
+    return res.status(404).json({ error: "Lien de partage introuvable ou déjà expiré." });
+  }
+  console.log(`Share link revoked: ${req.params.id}`);
+  closeInactiveShareStreams();
+  res.json({ success: true });
+});
 
 // Helper function to update TPMS state safely
 function applyTpmsData(parsedVal: any, subTopicType?: string) {

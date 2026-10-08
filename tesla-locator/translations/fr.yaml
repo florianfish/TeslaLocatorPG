@@ -16,5 +16,8 @@ configuration:
   user_access_token:
     name: Jeton utilisateur
     description: Accès en lecture seule (carte et télémétrie) pour l'accès direct par le port réseau.
+  public_url:
+    name: URL publique
+    description: "Adresse d'accès direct joignable par les destinataires des liens de partage (ex : https://tesla.mondomaine.fr). Sans elle, seul le jeton du lien est fourni."
 network:
   3000/tcp: Port de l'interface web pour un accès direct par jeton (laisser vide pour n'utiliser que la barre latérale Home Assistant)

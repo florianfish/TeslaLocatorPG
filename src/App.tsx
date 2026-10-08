@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import { Shield, User, LogOut } from "lucide-react";
-import { CarLocation, MqttStatus, TopicEntry, MessageLog, ConfigData, CarTelemetry, UserRole } from "./types";
+import { Shield, User, LogOut, Link2 } from "lucide-react";
+import { CarLocation, MqttStatus, TopicEntry, MessageLog, ConfigData, CarTelemetry, UserRole, ShareSession } from "./types";
 import SecureLogin from "./components/SecureLogin";
 import MapOverlay from "./components/MapOverlay";
 import DebugPanel from "./components/DebugPanel";
+import SharePanel from "./components/SharePanel";
 
 export default function App() {
   // Authentication & Security state
@@ -17,6 +18,8 @@ export default function App() {
   });
   const [authorized, setAuthorized] = useState<boolean>(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  // Set when the session comes from a temporary share link
+  const [shareSession, setShareSession] = useState<ShareSession | null>(null);
   // Always verify on load: Home Assistant Ingress sessions are authorized without a token
   const [isVerifying, setIsVerifying] = useState<boolean>(true);
   const [isIngress, setIsIngress] = useState<boolean>(false);
@@ -37,6 +40,7 @@ export default function App() {
 
   // UI state
   const [isDebugOpen, setIsDebugOpen] = useState<boolean>(false);
+  const [isShareOpen, setIsShareOpen] = useState<boolean>(false);
 
   // Leaflet Map Refs
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -58,6 +62,7 @@ export default function App() {
         if (data.authorized) {
           setAuthorized(true);
           setUserRole(data.role || "admin");
+          setShareSession(data.share || null);
           if (data.version) setAppVersion(data.version);
           setBrokerUrl(data.brokerUrl);
           setTopicConfig(data.topicConfig);
@@ -71,7 +76,8 @@ export default function App() {
         } else {
           setAuthorized(false);
           setUserRole(null);
-          setErrorMsg(token ? "La clé de sécurité fournie est invalide. Veuillez réessayer." : null);
+          setShareSession(null);
+          setErrorMsg(token ? "La clé de sécurité fournie est invalide ou le lien de partage a expiré." : null);
           localStorage.removeItem("car_tracker_token");
         }
       } catch (err: any) {
@@ -132,6 +138,20 @@ export default function App() {
 
           if (data.type === "ping") {
             // Heartbeat message from server, keep-alive active
+            return;
+          }
+
+          if (data.type === "expired") {
+            // Share link expired or revoked: stop reconnecting and go back to the login screen
+            eventSource?.close();
+            eventSource = null;
+            localStorage.removeItem("car_tracker_token");
+            setAuthorized(false);
+            setUserRole(null);
+            setShareSession(null);
+            setCarLocation(null);
+            setCarTelemetry(null);
+            setErrorMsg("Ce lien de partage a expiré ou a été révoqué.");
             return;
           }
 
@@ -317,10 +337,12 @@ export default function App() {
     setToken("");
     setAuthorized(false);
     setUserRole(null);
+    setShareSession(null);
     setCarLocation(null);
     setCarTelemetry(null);
     setMqttStatus("disconnected");
     setIsDebugOpen(false);
+    setIsShareOpen(false);
   };
 
   // If token verification is finished and user is not authorized, show SecureLogin form
@@ -391,6 +413,16 @@ export default function App() {
               <Shield className="w-3.5 h-3.5 text-[#E82127]" />
               <span className="text-xs font-bold text-[#E82127] font-mono uppercase tracking-wider">Admin</span>
             </div>
+          ) : shareSession ? (
+            <div
+              className="px-3 py-1.5 bg-sky-950/40 border border-sky-500/30 rounded-full flex items-center gap-2"
+              title={shareSession.label}
+            >
+              <Link2 className="w-3.5 h-3.5 text-sky-400" />
+              <span className="text-xs font-bold text-sky-300 font-mono uppercase tracking-wider">
+                Partage · {new Date(shareSession.expiresAt).toLocaleString("fr-FR", { weekday: "short", hour: "2-digit", minute: "2-digit" })}
+              </span>
+            </div>
           ) : (
             <div className="px-3 py-1.5 bg-sky-950/40 border border-sky-500/30 rounded-full flex items-center gap-2">
               <User className="w-3.5 h-3.5 text-sky-400" />
@@ -423,8 +455,10 @@ export default function App() {
           mqttStatus={mqttStatus}
           mqttError={mqttError}
           onCenter={handleRecenter}
-          onToggleDebug={() => setIsDebugOpen(!isDebugOpen)}
+          onToggleDebug={() => { setIsDebugOpen(!isDebugOpen); setIsShareOpen(false); }}
           isDebugOpen={isDebugOpen}
+          onToggleShare={() => { setIsShareOpen(!isShareOpen); setIsDebugOpen(false); }}
+          isShareOpen={isShareOpen}
           token={token}
           userRole={userRole}
         />
@@ -441,6 +475,10 @@ export default function App() {
           token={token}
           onSelectTopicCoordinate={handleSelectTopicCoordinate}
         />
+
+        {userRole === "admin" && (
+          <SharePanel isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} token={token} />
+        )}
       </main>
     </div>
   );

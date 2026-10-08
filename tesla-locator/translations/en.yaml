@@ -16,5 +16,8 @@ configuration:
   user_access_token:
     name: User token
     description: Read-only access (map and telemetry) for direct access through the network port.
+  public_url:
+    name: Public URL
+    description: "Direct-access address reachable by share link recipients (e.g. https://tesla.example.com). Without it, only the link token is returned."
 network:
   3000/tcp: Web UI port for token-based direct access (leave empty to only use the Home Assistant sidebar)

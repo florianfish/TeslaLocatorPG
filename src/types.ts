@@ -35,9 +35,22 @@ export interface MessageLog {
 
 export type UserRole = "admin" | "user";
 
+export interface ShareLink {
+  id: string;
+  label: string;
+  createdAt: number;
+  expiresAt: number;
+}
+
+export interface ShareSession {
+  label: string;
+  expiresAt: number;
+}
+
 export interface ConfigData {
   authorized: boolean;
   role?: UserRole;
+  share?: ShareSession;
   version?: string;
   ingress?: boolean;
   brokerUrl: string;

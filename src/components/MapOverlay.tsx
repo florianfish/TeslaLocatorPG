@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Car, Compass, Navigation, RefreshCw, AlertTriangle, Settings, Radio, Gauge, Battery, Zap, Thermometer, Milestone, ChevronDown, ChevronUp, Disc, Eye } from "lucide-react";
+import { Car, Compass, Navigation, RefreshCw, AlertTriangle, Settings, Radio, Gauge, Battery, Zap, Thermometer, Milestone, ChevronDown, ChevronUp, Disc, Eye, Share2 } from "lucide-react";
 import { CarLocation, MqttStatus, CarTelemetry, UserRole } from "../types";
 import TpmsWidget from "./TpmsWidget";
 
@@ -11,6 +11,8 @@ interface MapOverlayProps {
   onCenter: () => void;
   onToggleDebug: () => void;
   isDebugOpen: boolean;
+  onToggleShare: () => void;
+  isShareOpen: boolean;
   token: string;
   userRole?: UserRole | null;
 }
@@ -23,6 +25,8 @@ export default function MapOverlay({
   onCenter,
   onToggleDebug,
   isDebugOpen,
+  onToggleShare,
+  isShareOpen,
   token,
   userRole,
 }: MapOverlayProps) {
@@ -341,6 +345,17 @@ export default function MapOverlay({
       {/* Floating Header Actions - Only available for Admin role */}
       {userRole === "admin" && (
         <div className="w-full md:w-auto flex justify-between md:justify-end items-center gap-2 pointer-events-auto">
+          <button
+            onClick={onToggleShare}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all shadow-2xl cursor-pointer ${
+              isShareOpen
+                ? "bg-sky-600 border-sky-600 text-white shadow-lg shadow-sky-600/20"
+                : "bg-slate-900/95 hover:bg-slate-800/95 text-slate-300 border-slate-800 hover:border-slate-700"
+            }`}
+          >
+            <Share2 className="w-4 h-4" />
+            <span>Partager</span>
+          </button>
           <button
             onClick={onToggleDebug}
             className={`flex items-center gap-2 px-5 py-3 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all shadow-2xl cursor-pointer ${

@@ -1,5 +1,5 @@
 name: Tesla Tracker
-version: "1.0.2"
+version: "1.1.0"
 slug: tesla_locator
 description: Suivi en temps réel de la position et de la télémétrie d'une Tesla via TeslaMate (MQTT)
 url: https://github.com/florianfish/TeslaLocatorPG
@@ -21,6 +21,7 @@ ports_description:
 environment:
   ADDON_OPTIONS_FILE: /data/options.json
   HA_INGRESS: "true"
+  DATA_DIR: /data
 options:
   mqtt_broker_url: "mqtt://core-mosquitto:1883"
   mqtt_username: ""
@@ -28,6 +29,7 @@ options:
   mqtt_topic: teslamate/cars/1/location
   admin_access_token: ""
   user_access_token: ""
+  public_url: ""
 schema:
   mqtt_broker_url: str
   mqtt_username: str?
@@ -35,4 +37,5 @@ schema:
   mqtt_topic: str
   admin_access_token: password?
   user_access_token: password?
+  public_url: str?
 watchdog: http://[HOST]:[PORT:3000]/api/config

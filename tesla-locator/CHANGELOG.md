@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+- Liens de partage temporaires en lecture seule : création, liste et révocation depuis le bouton **Partager**, coupure automatique à l'expiration.
+- API `/api/share-links` (authentification `Authorization: Bearer <jeton admin>`) pour générer des liens depuis Home Assistant (`rest_command`).
+- Nouvelle option `public_url` pour construire l'adresse des liens de partage.
+
 ## 1.0.2
 
 - Écoute en IPv4 et IPv6 : le proxy Nginx de Home Assistant joint les add-ons en IPv6.

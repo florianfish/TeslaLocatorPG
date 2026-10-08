@@ -9,6 +9,9 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    volumes:
+      # Persists temporary share links across restarts
+      - ./data:/app/data
     environment:
       - NODE_ENV=production
       - PORT=3000
