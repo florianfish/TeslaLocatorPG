@@ -127,6 +127,12 @@ export default function MapOverlay({
                   {carTelemetry.battery_level}%
                 </span>
               )}
+              {carTelemetry?.state === "charging" && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-extrabold" title="Recharge en cours">
+                  <Zap className="w-3 h-3 animate-pulse" />
+                  {carTelemetry.charging?.charger_power != null ? `${carTelemetry.charging.charger_power} kW` : "Charge"}
+                </span>
+              )}
               {carTelemetry?.tpms && (
                 <span className="flex items-center gap-1 cursor-pointer" onClick={() => setIsMinimized(false)}>
                   <Disc className={`w-3.5 h-3.5 ${hasTpmsAlert ? "text-rose-400 animate-pulse" : "text-sky-400"}`} />

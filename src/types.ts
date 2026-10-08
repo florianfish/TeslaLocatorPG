@@ -83,6 +83,18 @@ export interface TpmsData {
   tpms_soft_warning_rr?: boolean | null;
 }
 
+export interface ChargingData {
+  charger_power: number | null; // kW
+  charger_voltage: number | null; // V
+  charger_actual_current: number | null; // A
+  charger_phases: number | null;
+  charge_energy_added: number | null; // kWh
+  time_to_full_charge: number | null; // hours
+  charge_limit_soc: number | null; // %
+  est_battery_range_km: number | null;
+  plugged_in: boolean | null;
+  charge_port_door_open: boolean | null;
+}
 
 export interface CarTelemetry {
   speed: number | null;
@@ -94,5 +106,6 @@ export interface CarTelemetry {
   sentry_mode: boolean | null;
   active_route: ActiveRoute | null;
   tpms: TpmsData | null;
+  charging: ChargingData | null;
 }
 

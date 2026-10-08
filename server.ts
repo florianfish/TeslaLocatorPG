@@ -166,7 +166,23 @@ let carTelemetry = {
     tpms_soft_warning_rl?: boolean | null;
     tpms_soft_warning_rr?: boolean | null;
   } | null,
+  charging: null as Record<ChargingField, number | boolean | null> | null,
 };
+
+// TeslaMate charging topics (teslamate/cars/<id>/<field>). TeslaMate publishes an empty
+// payload when a value no longer applies (e.g. time_to_full_charge once charging stops).
+const CHARGING_NUMERIC_FIELDS = [
+  "charger_power",
+  "charger_voltage",
+  "charger_actual_current",
+  "charger_phases",
+  "charge_energy_added",
+  "time_to_full_charge",
+  "charge_limit_soc",
+  "est_battery_range_km",
+] as const;
+const CHARGING_BOOLEAN_FIELDS = ["plugged_in", "charge_port_door_open"] as const;
+type ChargingField = (typeof CHARGING_NUMERIC_FIELDS)[number] | (typeof CHARGING_BOOLEAN_FIELDS)[number];
 
 // Track all active topics and their latest details
 const topicsMap = new Map<string, {
@@ -358,7 +374,8 @@ function connectMqtt() {
           `teslamate/cars/${carId}/tpms_soft_warning_fl`,
           `teslamate/cars/${carId}/tpms_soft_warning_fr`,
           `teslamate/cars/${carId}/tpms_soft_warning_rl`,
-          `teslamate/cars/${carId}/tpms_soft_warning_rr`
+          `teslamate/cars/${carId}/tpms_soft_warning_rr`,
+          ...[...CHARGING_NUMERIC_FIELDS, ...CHARGING_BOOLEAN_FIELDS].map((field) => `teslamate/cars/${carId}/${field}`)
         );
       }
 
@@ -427,6 +444,9 @@ function connectMqtt() {
           }
         }
       }
+
+      const chargingMatch = topic.match(/^teslamate\/cars\/[^/]+\/([a-z_]+)$/);
+      if (chargingMatch) applyChargingData(chargingMatch[1], rawPayload);
 
       // Update car location if GPS coordinates detected
       if (parsedGps) {
@@ -666,6 +686,30 @@ app.delete("/api/share-links/:id", (req, res) => {
 });
 
 // Helper function to update TPMS state safely
+function applyChargingData(field: string, rawPayload: string) {
+  const isNumeric = (CHARGING_NUMERIC_FIELDS as readonly string[]).includes(field);
+  const isBoolean = (CHARGING_BOOLEAN_FIELDS as readonly string[]).includes(field);
+  if (!isNumeric && !isBoolean) return;
+
+  if (!carTelemetry.charging) {
+    carTelemetry.charging = Object.fromEntries(
+      [...CHARGING_NUMERIC_FIELDS, ...CHARGING_BOOLEAN_FIELDS].map((key) => [key, null])
+    ) as Record<ChargingField, number | boolean | null>;
+  }
+
+  const trimmed = rawPayload.trim();
+  let value: number | boolean | null = null;
+  if (trimmed !== "") {
+    if (isBoolean) {
+      value = trimmed.toLowerCase() === "true";
+    } else {
+      const num = Number(trimmed);
+      value = Number.isFinite(num) ? num : null;
+    }
+  }
+  carTelemetry.charging[field as ChargingField] = value;
+}
+
 function applyTpmsData(parsedVal: any, subTopicType?: string) {
   if (!carTelemetry.tpms) {
     carTelemetry.tpms = {

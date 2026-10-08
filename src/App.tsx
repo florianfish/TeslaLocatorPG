@@ -4,6 +4,7 @@ import { Shield, User, LogOut, Link2 } from "lucide-react";
 import { CarLocation, MqttStatus, TopicEntry, MessageLog, ConfigData, CarTelemetry, UserRole, ShareSession } from "./types";
 import SecureLogin from "./components/SecureLogin";
 import MapOverlay from "./components/MapOverlay";
+import ChargingPanel from "./components/ChargingPanel";
 import DebugPanel from "./components/DebugPanel";
 import SharePanel from "./components/SharePanel";
 
@@ -467,6 +468,10 @@ export default function App() {
           token={token}
           userRole={userRole}
         />
+
+        {carTelemetry?.state === "charging" && (
+          <ChargingPanel charging={carTelemetry.charging} batteryLevel={carTelemetry.battery_level} />
+        )}
 
         {/* Sliding Control/Debug Drawer */}
         <DebugPanel
