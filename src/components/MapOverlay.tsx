@@ -3,6 +3,7 @@ import { Car, Compass, Navigation, RefreshCw, AlertTriangle, Settings, Radio, Ga
 import { CarLocation, MqttStatus, CarTelemetry, UserRole } from "../types";
 import TpmsWidget from "./TpmsWidget";
 import ChargingPanel from "./ChargingPanel";
+import ActiveRouteHud, { isRouteActive } from "./ActiveRouteHud";
 
 interface MapOverlayProps {
   carLocation: CarLocation | null;
@@ -358,6 +359,10 @@ export default function MapOverlay({
           </div>
         )}
       </div>
+
+      {isRouteActive(carTelemetry?.active_route) && (
+        <ActiveRouteHud route={carTelemetry.active_route} compact={!isMinimized} />
+      )}
 
       {carTelemetry?.state === "charging" && (
         <ChargingPanel charging={carTelemetry.charging} batteryLevel={carTelemetry.battery_level} compact={!isMinimized} />

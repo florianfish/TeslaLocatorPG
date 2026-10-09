@@ -15,9 +15,11 @@ import {
   MapPin,
   Clock,
   Eye,
-  BellRing
+  BellRing,
+  FlaskConical
 } from "lucide-react";
 import NotificationsTab from "./NotificationsTab";
+import DemoTab from "./DemoTab";
 import { MessageLog, TopicEntry, MqttStatus } from "../types";
 
 interface DebugPanelProps {
@@ -30,6 +32,7 @@ interface DebugPanelProps {
   logs: MessageLog[];
   token: string;
   onSelectTopicCoordinate: (lat: number, lon: number, topic: string) => void;
+  simulatorAvailable?: boolean;
 }
 
 export default function DebugPanel({
@@ -42,8 +45,9 @@ export default function DebugPanel({
   logs,
   token,
   onSelectTopicCoordinate,
+  simulatorAvailable = false,
 }: DebugPanelProps) {
-  const [activeTab, setActiveTab] = useState<"topics" | "logs" | "publish" | "notifications">("topics");
+  const [activeTab, setActiveTab] = useState<"topics" | "logs" | "publish" | "notifications" | "demo">("topics");
 
   // Publishing form state
   const [pubTopic, setPubTopic] = useState("teslamate/cars/1/location");
@@ -192,11 +196,25 @@ export default function DebugPanel({
           <BellRing className="w-3.5 h-3.5 inline mr-1.5" />
           Alertes
         </button>
+        {simulatorAvailable && (
+        <button
+          onClick={() => setActiveTab("demo")}
+          className={`flex-1 py-3 text-center border-b font-medium transition-colors cursor-pointer ${
+            activeTab === "demo"
+              ? "text-amber-400 border-amber-500 bg-slate-900/50"
+              : "text-slate-400 border-transparent hover:text-slate-200 hover:bg-slate-800/20"
+          }`}
+        >
+          <FlaskConical className="w-3.5 h-3.5 inline mr-1.5" />
+          Démo
+        </button>
+        )}
       </div>
 
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto p-4">
         {activeTab === "notifications" && <NotificationsTab token={token} />}
+        {activeTab === "demo" && simulatorAvailable && <DemoTab token={token} mqttStatus={mqttStatus} />}
 
         {/* TOPICS TAB */}
         {activeTab === "topics" && (
@@ -474,7 +492,7 @@ export default function DebugPanel({
                 <button
                   type="button"
                   onClick={() => {
-                    setPubTopic("teslamate/cars/1/location");
+                    setPubTopic("teslamate/cars/1/active_route");
                     const emptyPreset = {
                       error: "No active route available"
                     };

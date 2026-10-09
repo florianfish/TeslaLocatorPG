@@ -7,6 +7,7 @@ import MapOverlay from "./components/MapOverlay";
 import ChangelogModal from "./components/ChangelogModal";
 import DebugPanel from "./components/DebugPanel";
 import SharePanel from "./components/SharePanel";
+import { isRouteActive } from "./components/ActiveRouteHud";
 
 export default function App() {
   // Authentication & Security state
@@ -31,6 +32,7 @@ export default function App() {
   const [isChangelogOpen, setIsChangelogOpen] = useState<boolean>(false);
   const [brokerUrl, setBrokerUrl] = useState<string>("");
   const [topicConfig, setTopicConfig] = useState<string>("");
+  const [simulatorAvailable, setSimulatorAvailable] = useState<boolean>(false);
 
   // Live Location & MQTT status state
   const [carLocation, setCarLocation] = useState<CarLocation | null>(null);
@@ -48,6 +50,7 @@ export default function App() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const destinationMarkerRef = useRef<L.Marker | null>(null);
 
   // 1. Verification of the secure token
   useEffect(() => {
@@ -68,6 +71,7 @@ export default function App() {
           if (data.version) setAppVersion(data.version);
           setBrokerUrl(data.brokerUrl);
           setTopicConfig(data.topicConfig);
+          setSimulatorAvailable(Boolean(data.simulator));
           setIsIngress(Boolean(data.ingress));
           // Persist token for future sessions
           if (token) localStorage.setItem("car_tracker_token", token);
@@ -242,6 +246,7 @@ export default function App() {
         mapRef.current.remove();
         mapRef.current = null;
         markerRef.current = null;
+        destinationMarkerRef.current = null;
       }
     };
   }, [authorized]);
@@ -303,6 +308,53 @@ export default function App() {
     });
 
   }, [carLocation]);
+
+  // 6. Navigation destination: flag marker while a route is active
+  const activeRoute = carTelemetry?.active_route;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const destLat = activeRoute?.location?.latitude;
+    const destLon = activeRoute?.location?.longitude;
+    const hasDestination =
+      isRouteActive(activeRoute) &&
+      typeof destLat === "number" && typeof destLon === "number" &&
+      destLat >= -90 && destLat <= 90 && destLon >= -180 && destLon <= 180;
+
+    if (!hasDestination) {
+      destinationMarkerRef.current?.remove();
+      destinationMarkerRef.current = null;
+      return;
+    }
+
+    if (!destinationMarkerRef.current) {
+      const destinationIcon = L.divIcon({
+        className: "custom-destination-marker",
+        html: `
+          <div class="relative flex items-center justify-center">
+            <div class="absolute w-10 h-10 bg-sky-500/20 rounded-full animate-ping"></div>
+            <div class="w-8 h-8 bg-sky-500 rounded-full flex items-center justify-center shadow-2xl border-2 border-white">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                <path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/>
+              </svg>
+            </div>
+          </div>
+        `,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+      });
+      destinationMarkerRef.current = L.marker([destLat, destLon], { icon: destinationIcon }).addTo(map);
+    } else {
+      destinationMarkerRef.current.setLatLng([destLat, destLon]);
+    }
+
+    // Popup content is set as text: the destination name comes from the car's navigation
+    const popup = document.createElement("div");
+    popup.className = "p-1 font-sans text-xs font-bold text-slate-900";
+    popup.textContent = `🏁 ${activeRoute.destination || "Destination"}`;
+    destinationMarkerRef.current.bindPopup(popup, { closeButton: false, offset: [0, -10] });
+  }, [activeRoute]);
 
   // Recenter helper
   const handleRecenter = () => {
@@ -488,6 +540,7 @@ export default function App() {
           logs={logs}
           token={token}
           onSelectTopicCoordinate={handleSelectTopicCoordinate}
+          simulatorAvailable={simulatorAvailable}
         />
 
         {userRole === "admin" && (

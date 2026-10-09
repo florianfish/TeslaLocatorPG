@@ -22,6 +22,7 @@ import {
 import { initTelegram, isTelegramConfigured } from "./telegram";
 import { initNotifications, onTelemetryUpdate, getNotificationStatus, sendTestNotification } from "./notifications";
 import { initTelegramBot } from "./telegramBot";
+import { createSimulator, isSimulatorScenario } from "./simulator";
 
 // Automatic version detection helper
 function getAppVersion(): string {
@@ -63,6 +64,11 @@ initNotifications();
 
 const app = express();
 const PORT = 3000;
+
+// Local development (tsx + Vite middleware), as opposed to the bundled dist/server.cjs
+const IS_DEV = process.env.NODE_ENV === "development" ||
+  (process.env.NODE_ENV !== "production" &&
+   (typeof __filename === "undefined" || !__filename.endsWith("server.cjs")));
 
 app.use(express.json());
 
@@ -359,7 +365,8 @@ function connectMqtt() {
   if (!brokerUrl) {
     console.warn("MQTT broker URL is missing. Skipping connection.");
     mqttStatus = "disconnected";
-    mqttError = "Broker URL non configuré dans .env";
+    // Running locally without a broker is expected (demo simulator): only an error once deployed
+    mqttError = IS_DEV ? null : "Broker URL non configuré dans .env";
     return;
   }
 
@@ -418,119 +425,7 @@ function connectMqtt() {
     });
 
     mqttClient.on("message", (topic, message) => {
-      const rawPayload = message.toString();
-      const timestamp = Date.now();
-      const parsedGps = parseGps(rawPayload);
-
-      // Save to topics tracking
-      topicsMap.set(topic, {
-        payload: rawPayload,
-        timestamp,
-        parsedGps: parsedGps || undefined,
-      });
-
-      // Helper to parse scalar values
-      const parseValue = (val: string) => {
-        const trimmed = val.trim();
-        try {
-          return JSON.parse(trimmed);
-        } catch {
-          const num = Number(trimmed);
-          return isNaN(num) ? trimmed : num;
-        }
-      };
-
-      // Check if this topic belongs to any of the telemetry fields
-      const carIdMatch = topic.match(/^teslamate\/cars\/([^/]+)\/(speed|state|battery_level|odometer|outside_temp|shift_state|sentry_mode|active_route|tpms_pressure_fl|tpms_pressure_fr|tpms_pressure_rl|tpms_pressure_rr|tpms_soft_warning_fl|tpms_soft_warning_fr|tpms_soft_warning_rl|tpms_soft_warning_rr)$/);
-      if (carIdMatch) {
-        const subTopicType = carIdMatch[2];
-        const parsedVal = parseValue(rawPayload);
-        if (subTopicType === "speed") {
-          carTelemetry.speed = typeof parsedVal === "number" ? parsedVal : parseInt(parsedVal, 10);
-        } else if (subTopicType === "state") {
-          carTelemetry.state = String(parsedVal);
-        } else if (subTopicType === "battery_level") {
-          carTelemetry.battery_level = typeof parsedVal === "number" ? parsedVal : parseInt(parsedVal, 10);
-        } else if (subTopicType === "odometer") {
-          carTelemetry.odometer = typeof parsedVal === "number" ? parsedVal : parseFloat(parsedVal);
-        } else if (subTopicType === "outside_temp") {
-          carTelemetry.outside_temp = typeof parsedVal === "number" ? parsedVal : parseFloat(parsedVal);
-        } else if (subTopicType === "shift_state") {
-          carTelemetry.shift_state = String(parsedVal);
-        } else if (subTopicType === "sentry_mode") {
-          carTelemetry.sentry_mode = parsedVal === true || String(parsedVal).toLowerCase() === "true";
-        } else if (subTopicType.startsWith("tpms_")) {
-          applyTpmsData(parsedVal, subTopicType);
-        } else if (subTopicType === "active_route") {
-          if (typeof parsedVal === "object" && parsedVal !== null) {
-            carTelemetry.active_route = parsedVal;
-          } else {
-            try {
-              carTelemetry.active_route = JSON.parse(String(parsedVal));
-            } catch {
-              carTelemetry.active_route = { error: String(parsedVal) };
-            }
-          }
-        }
-      }
-
-      const chargingMatch = topic.match(/^teslamate\/cars\/[^/]+\/([a-z_]+)$/);
-      if (chargingMatch) {
-        applyChargingData(chargingMatch[1], rawPayload);
-        applySecurityData(chargingMatch[1], rawPayload);
-      }
-
-      // Update car location if GPS coordinates detected on the location topic
-      if (parsedGps && isLocationTopic(topic)) {
-        carLocation = {
-          lat: parsedGps.lat,
-          lon: parsedGps.lon,
-          timestamp,
-          topic,
-          rawPayload,
-        };
-        console.log(`Detected location on topic [${topic}]: ${parsedGps.lat}, ${parsedGps.lon}`);
-
-        // Extract extra telemetry parameters if they happen to be part of the location JSON payload
-        try {
-          const parsed = JSON.parse(rawPayload);
-          if (parsed && typeof parsed === "object") {
-            if (parsed.speed !== undefined) carTelemetry.speed = Number(parsed.speed);
-            if (parsed.battery_level !== undefined) carTelemetry.battery_level = Number(parsed.battery_level);
-            if (parsed.state !== undefined) carTelemetry.state = String(parsed.state);
-            if (parsed.odometer !== undefined) carTelemetry.odometer = Number(parsed.odometer);
-            if (parsed.outside_temp !== undefined) carTelemetry.outside_temp = Number(parsed.outside_temp);
-            if (parsed.shift_state !== undefined) carTelemetry.shift_state = String(parsed.shift_state);
-            if (parsed.sentry_mode !== undefined) carTelemetry.sentry_mode = parsed.sentry_mode === true || String(parsed.sentry_mode).toLowerCase() === "true";
-            if (parsed.active_route !== undefined) carTelemetry.active_route = parsed.active_route;
-            applyTpmsData(parsed);
-          }
-        } catch {}
-      }
-
-      // Add to message logs
-      const logEntry = {
-        id: Math.random().toString(36).substring(2, 9),
-        topic,
-        payload: rawPayload,
-        timestamp,
-        parsedGps: parsedGps || undefined,
-      };
-      messageLogs.unshift(logEntry);
-      if (messageLogs.length > 50) {
-        messageLogs.pop();
-      }
-
-      onTelemetryUpdate(carTelemetry);
-
-      // Broadcast update to all live streams
-      broadcast({
-        type: "message",
-        message: logEntry,
-        carLocation,
-        carTelemetry,
-        topics: Array.from(topicsMap.entries()),
-      });
+      ingestMessage(topic, message.toString());
     });
 
     mqttClient.on("offline", () => {
@@ -578,6 +473,7 @@ app.get("/api/config", (req, res) => {
     // Broker details are only disclosed to admins
     brokerUrl: auth?.role === "admin" ? rawBrokerUrl : "",
     topicConfig: auth?.role === "admin" ? MQTT_TOPIC : "",
+    simulator: auth?.role === "admin" && IS_DEV,
     defaultLocation: { lat: 46.2276, lon: 2.2137 } // Center of France
   });
 });
@@ -823,40 +719,20 @@ app.post("/api/notifications/test", async (req, res) => {
   res.json({ results });
 });
 
-// Support publishing custom coordinates for testing / simulation
-app.post("/api/test-publish", (req, res) => {
-  const role = getRequestRole(req);
-  if (role !== "admin") {
-    return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
-  }
-
-  // Express 5 leaves req.body undefined when the request has no JSON body
-  const { topic, payload } = req.body ?? {};
-  if (!topic || payload === undefined || payload === null) {
-    return res.status(400).json({ error: "Missing topic or payload in body" });
-  }
-
-  const payloadStr = typeof payload === "object" ? JSON.stringify(payload) : String(payload);
-
-  if (mqttClient && mqttClient.connected) {
-    mqttClient.publish(topic, payloadStr, { qos: 0, retain: false }, (err) => {
-      if (err) {
-        console.error("Failed to publish test message to MQTT broker:", err);
-      }
-    });
-  }
-
-  console.log(`[Processing Test Message] topic: ${topic}, payload: ${payloadStr}`);
-  
+// Applies an MQTT message (real, test or simulated) to the server state and pushes it to SSE clients.
+// notify: run the Telegram alert checks; quiet: skip the console log on location updates.
+function ingestMessage(topic: string, rawPayload: string, { notify = true, quiet = false } = {}) {
   const timestamp = Date.now();
-  const parsedGps = parseGps(payloadStr);
+  const parsedGps = parseGps(rawPayload);
 
+  // Save to topics tracking
   topicsMap.set(topic, {
-    payload: payloadStr,
+    payload: rawPayload,
     timestamp,
     parsedGps: parsedGps || undefined,
   });
 
+  // Helper to parse scalar values
   const parseValue = (val: string) => {
     const trimmed = val.trim();
     try {
@@ -867,10 +743,11 @@ app.post("/api/test-publish", (req, res) => {
     }
   };
 
+  // Check if this topic belongs to any of the telemetry fields
   const carIdMatch = topic.match(/^teslamate\/cars\/([^/]+)\/(speed|state|battery_level|odometer|outside_temp|shift_state|sentry_mode|active_route|tpms_pressure_fl|tpms_pressure_fr|tpms_pressure_rl|tpms_pressure_rr|tpms_soft_warning_fl|tpms_soft_warning_fr|tpms_soft_warning_rl|tpms_soft_warning_rr)$/);
   if (carIdMatch) {
     const subTopicType = carIdMatch[2];
-    const parsedVal = parseValue(payloadStr);
+    const parsedVal = parseValue(rawPayload);
     if (subTopicType === "speed") {
       carTelemetry.speed = typeof parsedVal === "number" ? parsedVal : parseInt(parsedVal, 10);
     } else if (subTopicType === "state") {
@@ -900,17 +777,26 @@ app.post("/api/test-publish", (req, res) => {
     }
   }
 
+  const chargingMatch = topic.match(/^teslamate\/cars\/[^/]+\/([a-z_]+)$/);
+  if (chargingMatch) {
+    applyChargingData(chargingMatch[1], rawPayload);
+    applySecurityData(chargingMatch[1], rawPayload);
+  }
+
+  // Update car location if GPS coordinates detected on the location topic
   if (parsedGps && isLocationTopic(topic)) {
     carLocation = {
       lat: parsedGps.lat,
       lon: parsedGps.lon,
       timestamp,
       topic,
-      rawPayload: payloadStr,
+      rawPayload,
     };
+    if (!quiet) console.log(`Detected location on topic [${topic}]: ${parsedGps.lat}, ${parsedGps.lon}`);
 
+    // Extract extra telemetry parameters if they happen to be part of the location JSON payload
     try {
-      const parsed = JSON.parse(payloadStr);
+      const parsed = JSON.parse(rawPayload);
       if (parsed && typeof parsed === "object") {
         if (parsed.speed !== undefined) carTelemetry.speed = Number(parsed.speed);
         if (parsed.battery_level !== undefined) carTelemetry.battery_level = Number(parsed.battery_level);
@@ -925,10 +811,11 @@ app.post("/api/test-publish", (req, res) => {
     } catch {}
   }
 
+  // Add to message logs
   const logEntry = {
     id: Math.random().toString(36).substring(2, 9),
     topic,
-    payload: payloadStr,
+    payload: rawPayload,
     timestamp,
     parsedGps: parsedGps || undefined,
   };
@@ -937,6 +824,9 @@ app.post("/api/test-publish", (req, res) => {
     messageLogs.pop();
   }
 
+  if (notify) onTelemetryUpdate(carTelemetry);
+
+  // Broadcast update to all live streams
   broadcast({
     type: "message",
     message: logEntry,
@@ -944,6 +834,34 @@ app.post("/api/test-publish", (req, res) => {
     carTelemetry,
     topics: Array.from(topicsMap.entries()),
   });
+}
+
+// Support publishing custom coordinates for testing / simulation
+app.post("/api/test-publish", (req, res) => {
+  const role = getRequestRole(req);
+  if (role !== "admin") {
+    return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
+  }
+
+  // Express 5 leaves req.body undefined when the request has no JSON body
+  const { topic, payload } = req.body ?? {};
+  if (!topic || payload === undefined || payload === null) {
+    return res.status(400).json({ error: "Missing topic or payload in body" });
+  }
+
+  const payloadStr = typeof payload === "object" ? JSON.stringify(payload) : String(payload);
+
+  if (mqttClient && mqttClient.connected) {
+    mqttClient.publish(topic, payloadStr, { qos: 0, retain: false }, (err) => {
+      if (err) {
+        console.error("Failed to publish test message to MQTT broker:", err);
+      }
+    });
+  }
+
+  console.log(`[Processing Test Message] topic: ${topic}, payload: ${payloadStr}`);
+  // Test messages do not trigger Telegram alerts
+  ingestMessage(topic, payloadStr, { notify: false });
 
   return res.json({
     success: true,
@@ -952,16 +870,47 @@ app.post("/api/test-publish", (req, res) => {
 
 });
 
+// ================= DEMO SIMULATOR (local development only) =================
+
+if (IS_DEV) {
+  // The configured location topic may hold wildcards: fall back to TeslaMate's default topic
+  const simulatorLocationTopic = /[+#]/.test(MQTT_TOPIC) ? "teslamate/cars/1/location" : MQTT_TOPIC;
+  // Simulated frames stay local (never published to the broker) and do not trigger Telegram alerts
+  const simulator = createSimulator(
+    (topic, payload) => ingestMessage(topic, payload, { notify: false, quiet: true }),
+    simulatorLocationTopic
+  );
+
+  app.get("/api/simulator", (req, res) => {
+    if (getRequestRole(req) !== "admin") {
+      return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
+    }
+    res.json(simulator.getStatus());
+  });
+
+  app.post("/api/simulator", (req, res) => {
+    if (getRequestRole(req) !== "admin") {
+      return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
+    }
+    const { action, scenario } = req.body ?? {};
+    if (action === "stop") {
+      simulator.stop();
+    } else if (action === "start" && isSimulatorScenario(scenario)) {
+      console.log(`[Simulator] Starting scenario "${scenario}"`);
+      simulator.start(scenario);
+    } else {
+      return res.status(400).json({ error: "Action ou scénario invalide." });
+    }
+    res.json(simulator.getStatus());
+  });
+}
+
 // ================= VITE ASSET HANDLING =================
 
 async function startServer() {
-  const isDev = process.env.NODE_ENV === "development" || 
-    (process.env.NODE_ENV !== "production" && 
-     (typeof __filename === "undefined" || !__filename.endsWith("server.cjs")));
-
   const httpServer = http.createServer(app);
 
-  if (isDev) {
+  if (IS_DEV) {
     // Development Mode: Use Vite Middleware with HMR bound to httpServer
     const vite = await createViteServer({
       server: {

@@ -56,6 +56,8 @@ export interface ConfigData {
   ingress?: boolean;
   brokerUrl: string;
   topicConfig: string;
+  // Demo simulator, only offered to admins on a local development server
+  simulator?: boolean;
   defaultLocation: { lat: number; lon: number };
 }
 
