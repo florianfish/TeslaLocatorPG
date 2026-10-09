@@ -67,5 +67,8 @@ configuration:
   charge_limit_entity:
     name: Entité de limite de charge
     description: "Entité number de Home Assistant pour la limite de charge en % (ex : number.ma_tesla_charge_limit). Permet de choisir la limite au démarrage ou à la programmation. Facultatif."
+  charge_wake_entity:
+    name: Entité de réveil
+    description: "Bouton Home Assistant qui réveille la voiture (ex : button.ma_tesla_wake, fourni par Tesla Fleet). Pressé avant d'appliquer l'ampérage ou la limite, que Tesla Fleet ne peut pas envoyer à une voiture endormie. Facultatif."
 network:
   3000/tcp: Port de l'interface web pour un accès direct par jeton (laisser vide pour n'utiliser que la barre latérale Home Assistant)

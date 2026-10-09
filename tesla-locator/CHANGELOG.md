@@ -1,9 +1,13 @@
 # Changelog
 
+## 1.3.11
+
+- Pilotage de la recharge : l'ampérage et la limite échouaient sur une voiture endormie (« The vehicle is not 'online' », erreur 500), les entités number de Tesla Fleet ne réveillant pas la voiture. Nouvelle option **Entité de réveil** (ex : `button.ma_tesla_wake`) : pressée avant d'envoyer l'ampérage ou la limite. Sans elle, ou si la voiture n'est pas encore prête, un réglage refusé est réessayé juste après le démarrage de la charge, une fois la voiture réveillée.
+
 ## 1.3.10
 
 - Pilotage de la recharge : un ampérage ou une limite qui ne peut pas être appliqué n'empêche plus le démarrage de la charge ; il est signalé en avertissement (panneau et Telegram).
-- Une valeur déjà en place n'est plus renvoyée à la voiture (Tesla refuse une limite inchangée, ce que Home Assistant remonte en erreur 500).
+- Une valeur déjà en place n'est plus renvoyée à la voiture.
 - Les erreurs indiquent la commande en cause (`number.set_value`, `switch.turn_on`…) ; une erreur 500 renvoie aux journaux de Home Assistant, seuls à contenir la cause réelle.
 
 ## 1.3.9

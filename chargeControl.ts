@@ -56,6 +56,7 @@ const RESPONSE_WAIT_MS = 20 * 1000;
 let entity = "";
 let currentEntity = "";
 let limitEntity = "";
+let wakeEntity = "";
 let haBaseUrl = "";
 let haToken = "";
 let storeFile = "";
@@ -69,6 +70,7 @@ export function initChargeControl() {
   entity = (process.env.CHARGE_SWITCH_ENTITY || "").trim();
   currentEntity = (process.env.CHARGE_CURRENT_ENTITY || "").trim();
   limitEntity = (process.env.CHARGE_LIMIT_ENTITY || "").trim();
+  wakeEntity = (process.env.CHARGE_WAKE_ENTITY || "").trim();
   // Inside the add-on, the Supervisor proxies the Home Assistant API with its own token.
   // Elsewhere (Docker, local dev), HA_URL + a long-lived access token are needed.
   if (process.env.SUPERVISOR_TOKEN) {
@@ -87,7 +89,7 @@ export function initChargeControl() {
     console.log(`Charge control disabled: ${reason}`);
     return;
   }
-  console.log(`Charge control enabled with ${[entity, currentEntity, limitEntity].filter(Boolean).join(", ")}`);
+  console.log(`Charge control enabled with ${[entity, currentEntity, limitEntity, wakeEntity].filter(Boolean).join(", ")}`);
   restoreSchedule();
 }
 
@@ -98,6 +100,9 @@ function unavailableReason(): string | null {
     if (value && !/^number\.[a-z0-9_]+$/.test(value)) {
       return `Option « ${option} » : « ${value} » n'est pas une entité number valide (format attendu : number.nom_de_l_entite).`;
     }
+  }
+  if (wakeEntity && !/^button\.[a-z0-9_]+$/.test(wakeEntity)) {
+    return `Option « Entité de réveil » : « ${wakeEntity} » n'est pas une entité button valide (format attendu : button.nom_de_l_entite).`;
   }
   if (!haToken || haBaseUrl === "/api") return "API Home Assistant inaccessible : hors add-on, renseigner HA_URL et HA_TOKEN.";
   return null;
@@ -205,33 +210,57 @@ export function describeSettings(settings: ChargeSettings | null | undefined): s
   return parts.filter(Boolean).join(", ");
 }
 
-// Sets a number entity, skipped when it already holds the value (Tesla refuses an unchanged charge
-// limit and Home Assistant reports it as an error)
-async function applySetting(entityId: string, value: number, range: Omit<NumberSetting, "value">): Promise<void> {
-  const current = await readNumber(entityId, range);
-  if (current.value === value) return;
+type SettingStep = { label: string; entityId: string; value: number };
+
+async function setNumber({ entityId, value }: SettingStep): Promise<void> {
   await callService("number", "set_value", { entity_id: entityId, value });
 }
 
-// Applies the settings, then flips the switch. The first call wakes the car, the next ones are quick.
-// A setting that fails does not prevent charging: it is reported as a warning.
+// Applies the settings, then flips the switch. Tesla Fleet's number entities do not wake the car
+// (the integration fails with "The vehicle is not 'online'") while its switch does: the wake button,
+// when configured, is pressed first, and settings still refused are retried once the switch went
+// through. One still failing does not prevent charging, it is reported as a warning.
 async function sendCommand(on: boolean, settings: ChargeSettings): Promise<string | undefined> {
-  const warnings: string[] = [];
-  const steps: [string, string, number | undefined, Omit<NumberSetting, "value">][] = [
+  const candidates: [string, string, number | undefined, Omit<NumberSetting, "value">][] = [
     ["Ampérage", currentEntity, settings.amps, DEFAULT_RANGES.amps],
     ["Limite de charge", limitEntity, settings.limit, DEFAULT_RANGES.limit],
   ];
-  for (const [label, entityId, value, range] of steps) {
+  // Values already in place are not sent again (reading the state does not wake the car)
+  const steps: SettingStep[] = [];
+  for (const [label, entityId, value, range] of candidates) {
     if (value === undefined) continue;
+    if ((await readNumber(entityId, range)).value !== value) steps.push({ label, entityId, value });
+  }
+
+  if (steps.length && wakeEntity) {
     try {
-      await applySetting(entityId, value, range);
+      await callService("button", "press", { entity_id: wakeEntity });
     } catch (err) {
-      const error = describeError(err);
-      console.warn(`Charge control: cannot set ${entityId} to ${value}: ${error}`);
-      warnings.push(`${label} non appliqué(e) : ${error}`);
+      console.warn(`Charge control: cannot wake the car with ${wakeEntity}: ${describeError(err)}`);
+    }
+  }
+
+  const failed: SettingStep[] = [];
+  for (const step of steps) {
+    try {
+      await setNumber(step);
+    } catch (err) {
+      console.warn(`Charge control: cannot set ${step.entityId} to ${step.value} yet, retrying after the switch: ${describeError(err)}`);
+      failed.push(step);
     }
   }
   await callService("switch", on ? "turn_on" : "turn_off", { entity_id: entity });
+
+  const warnings: string[] = [];
+  for (const step of failed) {
+    try {
+      await setNumber(step);
+    } catch (err) {
+      const error = describeError(err);
+      console.warn(`Charge control: cannot set ${step.entityId} to ${step.value}: ${error}`);
+      warnings.push(`${step.label} non appliqué(e) : ${error}`);
+    }
+  }
   return warnings.length ? warnings.join(" ; ") : undefined;
 }
 

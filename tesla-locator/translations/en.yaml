@@ -67,5 +67,8 @@ configuration:
   charge_limit_entity:
     name: Charge limit entity
     description: "Home Assistant number entity for the charge limit in % (e.g. number.my_tesla_charge_limit). Lets you choose the limit when starting or scheduling a charge. Optional."
+  charge_wake_entity:
+    name: Wake entity
+    description: "Home Assistant button that wakes the car up (e.g. button.my_tesla_wake, provided by Tesla Fleet). Pressed before setting the current or the limit, which Tesla Fleet cannot send to a sleeping car. Optional."
 network:
   3000/tcp: Web UI port for token-based direct access (leave empty to only use the Home Assistant sidebar)

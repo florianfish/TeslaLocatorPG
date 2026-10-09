@@ -28,6 +28,7 @@ Ces options remplacent le fichier `.env` de l'installation Docker. Après modifi
 | Commandes du bot Telegram | `TELEGRAM_COMMANDS` | `/position`, `/etat`, `/charge`, `/partage` (activées par défaut) |
 | Entité de recharge | `CHARGE_SWITCH_ENTITY` | Interrupteur Home Assistant de la recharge, pour la démarrer, l'arrêter ou la programmer (voir ci-dessous) |
 | Entités d'ampérage / de limite de charge | `CHARGE_CURRENT_ENTITY` / `CHARGE_LIMIT_ENTITY` | Entités number Home Assistant pour choisir l'ampérage et la limite de charge au démarrage (facultatif) |
+| Entité de réveil | `CHARGE_WAKE_ENTITY` | Bouton Home Assistant qui réveille la voiture (ex : `button.ma_tesla_wake`), pressé avant d'appliquer l'ampérage / la limite (facultatif, utile avec Tesla Fleet) |
 
 ## Accès
 
