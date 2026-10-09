@@ -2,6 +2,26 @@
 
 Application moderne de suivi et de géolocalisation de véhicule (Tesla) en temps réel, s'interfaçant avec **TeslaMate** via **MQTT**, avec une carte interactive (Leaflet), télémétrie en direct (SSE) et accès sécurisé par jeton.
 
+![Navigation en cours](docs/screenshots/01-navigation.jpg)
+
+## ✨ Fonctionnalités
+
+- **Carte en direct** : position, vitesse, batterie, état, rapport engagé, température, kilométrage.
+- **Navigation en cours** : destination, heure d'arrivée, temps et distance restants, batterie à l'arrivée, retard trafic.
+- **Recharge** : puissance, heure de fin, énergie ajoutée, limite ; arrêt, démarrage et démarrage programmé via une intégration Tesla de Home Assistant.
+- **Sentinelle et pneus** : état du mode Sentinelle, pression des 4 pneus avec alerte.
+- **Liens de partage temporaires** en lecture seule, et **notifications Telegram**.
+
+| Recharge | Télémétrie détaillée |
+| --- | --- |
+| ![Recharge rapide](docs/screenshots/02-recharge.jpg) | ![Télémétrie détaillée](docs/screenshots/03-telemetrie.jpg) |
+
+| Liens de partage | Mobile |
+| --- | --- |
+| ![Liens de partage](docs/screenshots/04-partage.jpg) | <img src="docs/screenshots/05-mobile-navigation.jpg" alt="Mobile : navigation" width="48%"> <img src="docs/screenshots/06-mobile-recharge.jpg" alt="Mobile : recharge" width="48%"> |
+
+*Captures réalisées avec le mode démo (données fictives).*
+
 ---
 
 ## 🛠️ Prérequis
