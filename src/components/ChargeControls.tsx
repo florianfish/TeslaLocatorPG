@@ -21,7 +21,7 @@ interface ChargeControlStatus {
   scheduledSettings: ChargeSettings | null;
   canSetAmps: boolean;
   canSetLimit: boolean;
-  lastRun: { at: number; action: "on" | "off"; scheduled: boolean; ok: boolean; pending?: boolean; error?: string } | null;
+  lastRun: { at: number; action: "on" | "off"; scheduled: boolean; ok: boolean; pending?: boolean; error?: string; warning?: string } | null;
   // Only sent by GET: current values and ranges read from Home Assistant
   settings?: { amps: NumberSetting | null; limit: NumberSetting | null };
 }
@@ -78,7 +78,7 @@ export default function ChargeControls({ token, isCharging }: ChargeControlsProp
   const [pending, setPending] = useState<Action | null>(null);
   // Commands acting on the car need a second click to confirm
   const [confirming, setConfirming] = useState<Action | null>(null);
-  const [feedback, setFeedback] = useState<{ tone: "ok" | "pending" | "error"; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ tone: "ok" | "pending" | "warn" | "error"; text: string } | null>(null);
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -106,7 +106,9 @@ export default function ChargeControls({ token, isCharging }: ChargeControlsProp
       setStatus(data);
       if (data.lastRun && !data.lastRun.pending) {
         setFeedback(
-          data.lastRun.ok
+          data.lastRun.ok && data.lastRun.warning
+            ? { tone: "warn", text: `Démarrage confirmé, mais : ${data.lastRun.warning}` }
+            : data.lastRun.ok
             ? { tone: "ok", text: data.lastRun.action === "on" ? "Démarrage confirmé par la voiture." : "Arrêt confirmé par la voiture." }
             : { tone: "error", text: data.lastRun.error || "Échec de la commande." }
         );
@@ -166,6 +168,8 @@ export default function ChargeControls({ token, isCharging }: ChargeControlsProp
       };
       if (data.lastRun?.pending && (action === "start" || action === "stop")) {
         setFeedback({ tone: "pending", text: "Commande envoyée, la voiture se réveille… (jusqu'à une minute)" });
+      } else if (data.lastRun?.warning && action === "start") {
+        setFeedback({ tone: "warn", text: `Démarrage confirmé, mais : ${data.lastRun.warning}` });
       } else {
         setFeedback({ tone: "ok", text: messages[action] });
       }
@@ -306,7 +310,7 @@ export default function ChargeControls({ token, isCharging }: ChargeControlsProp
 
       {feedback && (
         <p className={`text-[10px] font-semibold ${
-          feedback.tone === "ok" ? "text-emerald-400" : feedback.tone === "pending" ? "text-amber-400" : "text-rose-400"
+          feedback.tone === "ok" ? "text-emerald-400" : feedback.tone === "pending" || feedback.tone === "warn" ? "text-amber-400" : "text-rose-400"
         }`}>{feedback.text}</p>
       )}
       {!feedback && lastScheduledFailure && (

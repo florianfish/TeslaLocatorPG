@@ -38,6 +38,8 @@ export interface ChargeControlStatus {
     ok: boolean;
     pending?: boolean;
     error?: string;
+    // A setting could not be applied but charging was still started / stopped
+    warning?: string;
     settings?: ChargeSettings;
   } | null;
 }
@@ -128,8 +130,13 @@ async function callService(domain: string, service: string, data: Record<string,
     signal: AbortSignal.timeout(HA_CALL_TIMEOUT_MS),
   });
   if (!res.ok) {
-    const detail = (await res.text().catch(() => "")).slice(0, 200);
-    throw new Error(`Home Assistant a répondu ${res.status}${detail ? ` : ${detail}` : ""}`);
+    // Home Assistant turns any integration error (car asleep, command refused...) into a bare 500
+    // whose real cause is only written to its own logs
+    const detail =
+      res.status === 500
+        ? "erreur de l'intégration Tesla, voir les journaux de Home Assistant"
+        : (await res.text().catch(() => "")).slice(0, 200);
+    throw new Error(`${domain}.${service} ${data.entity_id ?? ""} : Home Assistant a répondu ${res.status}${detail ? ` (${detail})` : ""}`);
   }
 }
 
@@ -198,15 +205,34 @@ export function describeSettings(settings: ChargeSettings | null | undefined): s
   return parts.filter(Boolean).join(", ");
 }
 
+// Sets a number entity, skipped when it already holds the value (Tesla refuses an unchanged charge
+// limit and Home Assistant reports it as an error)
+async function applySetting(entityId: string, value: number, range: Omit<NumberSetting, "value">): Promise<void> {
+  const current = await readNumber(entityId, range);
+  if (current.value === value) return;
+  await callService("number", "set_value", { entity_id: entityId, value });
+}
+
 // Applies the settings, then flips the switch. The first call wakes the car, the next ones are quick.
-async function sendCommand(on: boolean, settings: ChargeSettings): Promise<void> {
-  if (settings.amps !== undefined) {
-    await callService("number", "set_value", { entity_id: currentEntity, value: settings.amps });
-  }
-  if (settings.limit !== undefined) {
-    await callService("number", "set_value", { entity_id: limitEntity, value: settings.limit });
+// A setting that fails does not prevent charging: it is reported as a warning.
+async function sendCommand(on: boolean, settings: ChargeSettings): Promise<string | undefined> {
+  const warnings: string[] = [];
+  const steps: [string, string, number | undefined, Omit<NumberSetting, "value">][] = [
+    ["Ampérage", currentEntity, settings.amps, DEFAULT_RANGES.amps],
+    ["Limite de charge", limitEntity, settings.limit, DEFAULT_RANGES.limit],
+  ];
+  for (const [label, entityId, value, range] of steps) {
+    if (value === undefined) continue;
+    try {
+      await applySetting(entityId, value, range);
+    } catch (err) {
+      const error = describeError(err);
+      console.warn(`Charge control: cannot set ${entityId} to ${value}: ${error}`);
+      warnings.push(`${label} non appliqué(e) : ${error}`);
+    }
   }
   await callService("switch", on ? "turn_on" : "turn_off", { entity_id: entity });
+  return warnings.length ? warnings.join(" ; ") : undefined;
 }
 
 function describeError(err: unknown): string {
@@ -217,14 +243,16 @@ function describeError(err: unknown): string {
 }
 
 // Sends the command and records its outcome in lastRun; rejects with a readable message
-function runSwitch(on: boolean, scheduled: boolean, settings: ChargeSettings = {}): Promise<void> {
+// Resolves with a warning when a setting could not be applied
+function runSwitch(on: boolean, scheduled: boolean, settings: ChargeSettings = {}): Promise<string | undefined> {
   const action = on ? "on" : "off";
   lastRun = { at: Date.now(), action, scheduled, ok: false, pending: true, settings };
   const detail = describeSettings(settings);
   return sendCommand(on, settings).then(
-    () => {
-      lastRun = { at: Date.now(), action, scheduled, ok: true, settings };
+    (warning) => {
+      lastRun = { at: Date.now(), action, scheduled, ok: true, warning, settings };
       console.log(`Charge control: ${entity} turned ${action}${detail ? ` (${detail})` : ""}${scheduled ? " (scheduled)" : ""}`);
+      return warning;
     },
     (err) => {
       const error = describeError(err);
@@ -261,10 +289,11 @@ async function runScheduledStart() {
   const settings = scheduledSettings ?? {};
   clearSchedule();
   try {
-    await runSwitch(true, true, settings);
+    const warning = await runSwitch(true, true, settings);
     const detail = describeSettings(settings);
     void broadcastMessage(
-      `⚡ <b>Recharge programmée lancée</b>\nLa demande de démarrage a été envoyée à la voiture${detail ? ` (${escapeHtml(detail)})` : ""}.`
+      `⚡ <b>Recharge programmée lancée</b>\nLa demande de démarrage a été envoyée à la voiture${detail ? ` (${escapeHtml(detail)})` : ""}.` +
+        (warning ? `\n⚠️ ${escapeHtml(warning)}` : "")
     );
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);

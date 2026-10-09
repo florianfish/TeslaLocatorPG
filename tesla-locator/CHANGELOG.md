@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.10
+
+- Pilotage de la recharge : un ampérage ou une limite qui ne peut pas être appliqué n'empêche plus le démarrage de la charge ; il est signalé en avertissement (panneau et Telegram).
+- Une valeur déjà en place n'est plus renvoyée à la voiture (Tesla refuse une limite inchangée, ce que Home Assistant remonte en erreur 500).
+- Les erreurs indiquent la commande en cause (`number.set_value`, `switch.turn_on`…) ; une erreur 500 renvoie aux journaux de Home Assistant, seuls à contenir la cause réelle.
+
 ## 1.3.9
 
 - Pilotage de la recharge : choix de l'ampérage et de la limite de charge (%) pour un démarrage immédiat ou programmé. Renseigner les nouvelles options **Entité d'ampérage de recharge** et **Entité de limite de charge** (entités number de Tesla Fleet, Teslemetry ou Tessie).
