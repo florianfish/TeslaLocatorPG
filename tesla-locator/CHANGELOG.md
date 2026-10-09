@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.6
+
+- Pilotage de la recharge : quand il n'est pas disponible, le panneau de recharge en donne la raison (option « Entité de recharge » vide, entité invalide, API Home Assistant inaccessible) au lieu de masquer les boutons sans explication.
+
 ## 1.3.5
 
 - Pilotage de la recharge via l'interrupteur de recharge d'une intégration Tesla de Home Assistant (Tesla Fleet, Teslemetry, Tessie), à renseigner dans la nouvelle option **Entité de recharge** : boutons pour arrêter ou démarrer la charge, et démarrage programmé à l'heure choisie. Réservé aux administrateurs.

@@ -7,6 +7,8 @@ import { broadcastMessage, escapeHtml } from "./telegram";
 
 export interface ChargeControlStatus {
   configured: boolean;
+  // Why charge control is unavailable, shown to admins
+  reason: string | null;
   entity: string | null;
   scheduledAt: number | null;
   lastRun: { at: number; action: "on" | "off"; scheduled: boolean; ok: boolean; error?: string } | null;
@@ -40,21 +42,29 @@ export function initChargeControl() {
   const dataDir = process.env.DATA_DIR || path.join(process.cwd(), "data");
   storeFile = path.join(dataDir, "charge-schedule.json");
 
-  if (!isChargeControlConfigured()) {
-    if (entity) console.warn("Charge control disabled: Home Assistant API not reachable (HA_URL / HA_TOKEN not set)");
+  const reason = unavailableReason();
+  if (reason) {
+    console.log(`Charge control disabled: ${reason}`);
     return;
   }
   console.log(`Charge control enabled with ${entity}`);
   restoreSchedule();
 }
 
+function unavailableReason(): string | null {
+  if (!entity) return "Renseigner l'option « Entité de recharge » de l'add-on (ex : switch.ma_tesla_charge), puis redémarrer l'add-on.";
+  if (!/^switch\.[a-z0-9_]+$/.test(entity)) return `« ${entity} » n'est pas une entité switch valide (format attendu : switch.nom_de_l_entite).`;
+  if (!haToken || haBaseUrl === "/api") return "API Home Assistant inaccessible : hors add-on, renseigner HA_URL et HA_TOKEN.";
+  return null;
+}
+
 export function isChargeControlConfigured(): boolean {
-  return /^switch\.[a-z0-9_]+$/.test(entity) && haToken !== "" && haBaseUrl !== "/api";
+  return unavailableReason() === null;
 }
 
 export function getChargeControlStatus(): ChargeControlStatus {
-  const configured = isChargeControlConfigured();
-  return { configured, entity: configured ? entity : null, scheduledAt, lastRun };
+  const reason = unavailableReason();
+  return { configured: reason === null, reason, entity: reason === null ? entity : null, scheduledAt, lastRun };
 }
 
 async function callSwitch(on: boolean): Promise<void> {

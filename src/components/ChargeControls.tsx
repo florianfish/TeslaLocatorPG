@@ -3,6 +3,7 @@ import { AlarmClock, Loader2, Play, Square, X } from "lucide-react";
 
 interface ChargeControlStatus {
   configured: boolean;
+  reason: string | null;
   entity: string | null;
   scheduledAt: number | null;
   lastRun: { at: number; action: "on" | "off"; scheduled: boolean; ok: boolean; error?: string } | null;
@@ -60,7 +61,18 @@ export default function ChargeControls({ token, isCharging }: ChargeControlsProp
     };
   }, [token]);
 
-  if (!status?.configured) return null;
+  if (!status) return null;
+  if (!status.configured) {
+    return (
+      <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/60 flex gap-2 text-[10px] leading-relaxed text-slate-400">
+        <AlarmClock className="w-4 h-4 shrink-0 text-slate-500" />
+        <p>
+          <span className="block font-bold uppercase tracking-wider text-slate-500 mb-0.5">Pilotage de la recharge désactivé</span>
+          {status.reason}
+        </p>
+      </div>
+    );
+  }
 
   const run = async (action: Action) => {
     if ((action === "start" || action === "stop") && confirming !== action) {
