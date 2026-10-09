@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.7
+
+- Correction : sans pression de pneu reçue de TeslaMate, le résumé de la télémétrie affichait « Infinity bar » et signalait à tort une alerte pneus.
+
 ## 1.3.6
 
 - Pilotage de la recharge : quand il n'est pas disponible, le panneau de recharge en donne la raison (option « Entité de recharge » vide, entité invalide, API Home Assistant inaccessible) au lieu de masquer les boutons sans explication.

@@ -57,6 +57,11 @@ const driveScenario: Scenario = (car, locationTopic, inject) => {
   car("sentry_mode", false);
   car("locked", true);
   car("is_user_present", true);
+  // Scenarios share the server state: reset what a previous one may have left
+  car("plugged_in", false);
+  car("charge_port_door_open", false);
+  car("charger_power", "");
+  car("time_to_full_charge", "");
 
   return () => {
     tick++;
@@ -126,6 +131,7 @@ const chargingScenario: Scenario = (car, locationTopic, inject) => {
   car("plugged_in", true);
   car("charge_port_door_open", true);
   car("charge_limit_soc", limit);
+  car("sentry_mode", false);
   car("charger_phases", "");
 
   return () => {

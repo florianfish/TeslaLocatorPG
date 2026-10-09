@@ -62,16 +62,16 @@ export default function MapOverlay({
     return () => clearInterval(interval);
   }, [carLocation]);
 
-  const tpmsLowest = carTelemetry?.tpms
-    ? Math.min(
-        ...[
-          carTelemetry.tpms.tpms_pressure_fl,
-          carTelemetry.tpms.tpms_pressure_fr,
-          carTelemetry.tpms.tpms_pressure_rl,
-          carTelemetry.tpms.tpms_pressure_rr,
-        ].filter((val): val is number => val !== null && !isNaN(val))
-      )
-    : null;
+  // TeslaMate may send no tyre pressure at all (older cars, topic not published yet)
+  const tpmsPressures = carTelemetry?.tpms
+    ? [
+        carTelemetry.tpms.tpms_pressure_fl,
+        carTelemetry.tpms.tpms_pressure_fr,
+        carTelemetry.tpms.tpms_pressure_rl,
+        carTelemetry.tpms.tpms_pressure_rr,
+      ].filter((val): val is number => val !== null && Number.isFinite(val))
+    : [];
+  const tpmsLowest = tpmsPressures.length > 0 ? Math.min(...tpmsPressures) : null;
 
   const hasTpmsAlert = tpmsLowest !== null && (tpmsLowest < 2.3 || tpmsLowest > 3.4);
 
@@ -137,11 +137,11 @@ export default function MapOverlay({
                   {carTelemetry.charging?.charger_power != null ? `${carTelemetry.charging.charger_power} kW` : "Charge"}
                 </span>
               )}
-              {carTelemetry?.tpms && (
+              {tpmsLowest !== null && (
                 <span className="flex items-center gap-1 cursor-pointer" onClick={() => setIsMinimized(false)}>
                   <Disc className={`w-3.5 h-3.5 ${hasTpmsAlert ? "text-rose-400 animate-pulse" : "text-sky-400"}`} />
                   <span className={hasTpmsAlert ? "text-rose-400 font-extrabold animate-pulse" : "text-slate-300"}>
-                    {tpmsLowest !== null && !isNaN(tpmsLowest) ? `${tpmsLowest.toFixed(1)} bar` : "TPMS"}
+                    {`${tpmsLowest.toFixed(1)} bar`}
                   </span>
                 </span>
               )}
