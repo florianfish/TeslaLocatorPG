@@ -58,5 +58,8 @@ configuration:
   telegram_commands:
     name: Telegram bot commands
     description: "Answers /position, /etat, /charge and /partage, only in the configured chats."
+  charge_switch_entity:
+    name: Charging entity
+    description: "Home Assistant switch that starts / stops charging (e.g. switch.my_tesla_charge, provided by Tesla Fleet, Teslemetry or Tessie). Enables the charging buttons and scheduled charging. Leave empty to disable."
 network:
   3000/tcp: Web UI port for token-based direct access (leave empty to only use the Home Assistant sidebar)

@@ -1,12 +1,17 @@
 import { useState } from "react";
 import { BatteryCharging, ChevronDown, ChevronUp, Clock, Gauge, Plug, Route, Zap } from "lucide-react";
 import { ChargingData } from "../types";
+import ChargeControls from "./ChargeControls";
 
 interface ChargingPanelProps {
   charging: ChargingData | null;
   batteryLevel: number | null;
+  // Plugged in but not charging (stopped, waiting for a scheduled start, or limit reached)
+  isCharging?: boolean;
   // Hides the details, e.g. while the telemetry panel above is expanded and needs the height
   compact?: boolean;
+  // Admin token (empty through Ingress): shows the start / stop / schedule controls when configured on the server
+  controlsToken?: string;
 }
 
 // TeslaMate publishes time_to_full_charge in decimal hours
@@ -23,7 +28,7 @@ function formatEta(hours: number): string {
   return eta.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export default function ChargingPanel({ charging, batteryLevel, compact = false }: ChargingPanelProps) {
+export default function ChargingPanel({ charging, batteryLevel, isCharging = true, compact = false, controlsToken }: ChargingPanelProps) {
   const [isMinimized, setIsMinimized] = useState<boolean>(false);
 
   const power = charging?.charger_power ?? null;
@@ -41,15 +46,16 @@ export default function ChargingPanel({ charging, batteryLevel, compact = false 
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
-              <BatteryCharging className="w-5 h-5 animate-pulse" />
+              {isCharging ? <BatteryCharging className="w-5 h-5 animate-pulse" /> : <Plug className="w-5 h-5" />}
             </div>
             <div className="min-w-0">
               <h2 className="text-xs font-bold text-emerald-300 uppercase tracking-widest truncate">
-                {isFastCharging ? "Recharge rapide" : "Recharge en cours"}
+                {!isCharging ? "Véhicule branché" : isFastCharging ? "Recharge rapide" : "Recharge en cours"}
               </h2>
               <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate">
-                {power !== null ? `${power} kW` : "-- kW"}
-                {hasTimeToFull ? ` • Fin vers ${formatEta(timeToFull)}` : ""}
+                {!isCharging
+                  ? "Pas de recharge en cours"
+                  : `${power !== null ? `${power} kW` : "-- kW"}${hasTimeToFull ? ` • Fin vers ${formatEta(timeToFull)}` : ""}`}
               </p>
             </div>
           </div>
@@ -93,7 +99,7 @@ export default function ChargingPanel({ charging, batteryLevel, compact = false 
           </div>
         </div>
 
-        {!isMinimized && !compact && (
+        {!isMinimized && !compact && isCharging && (
           <div className="grid grid-cols-2 gap-3">
             {/* Power */}
             <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/60 flex items-center gap-2.5">
@@ -164,6 +170,8 @@ export default function ChargingPanel({ charging, batteryLevel, compact = false 
             </div>
           </div>
         )}
+
+        {!isMinimized && !compact && controlsToken !== undefined && <ChargeControls token={controlsToken} isCharging={isCharging} />}
       </div>
     </div>
   );

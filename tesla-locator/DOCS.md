@@ -26,6 +26,7 @@ Ces options remplacent le fichier `.env` de l'installation Docker. Après modifi
 | Notifier pneus, batterie basse, voiture ouverte | `NOTIFY_TPMS` / `NOTIFY_BATTERY_LOW` / `NOTIFY_LEFT_OPEN` | Toutes activées par défaut |
 | Seuils et délais | `TPMS_ALERT_THRESHOLD` / `BATTERY_LOW_THRESHOLD` / `CHARGE_ENDING_SOON_MINUTES` / `LEFT_OPEN_DELAY_MINUTES` | `2.3` bar, `20` %, `15` min, `10` min par défaut |
 | Commandes du bot Telegram | `TELEGRAM_COMMANDS` | `/position`, `/etat`, `/charge`, `/partage` (activées par défaut) |
+| Entité de recharge | `CHARGE_SWITCH_ENTITY` | Interrupteur Home Assistant de la recharge, pour la démarrer, l'arrêter ou la programmer (voir ci-dessous) |
 
 ## Accès
 
@@ -64,6 +65,22 @@ Le bot ne répond qu'aux chats configurés ; les autres messages sont ignorés (
 | `/aide` | Liste des commandes |
 
 Une seule instance peut utiliser un bot à la fois : ne pas réutiliser le même jeton dans une autre installation de Tesla Tracker ou un autre programme qui lit les messages du bot.
+
+## Pilotage de la recharge
+
+TeslaMate ne fait que lire les données de la voiture. Pour démarrer ou arrêter la recharge, Tesla Tracker passe par l'interrupteur de recharge d'une intégration Tesla de Home Assistant (**Tesla Fleet**, **Teslemetry** ou **Tessie**).
+
+1. Repérer l'entité dans **Paramètres → Appareils et services → Entités** (ex : `switch.ma_tesla_charge`).
+2. La renseigner dans l'option **Entité de recharge** et redémarrer l'add-on.
+
+Quand la voiture est branchée, le panneau de recharge propose alors (administrateurs uniquement, jamais en lecture seule ni depuis un lien de partage) :
+
+- **Arrêter / Démarrer la charge** immédiatement, avec un second clic de confirmation ;
+- **Démarrage programmé** : choisir une heure, la recharge est lancée à la prochaine occurrence (aujourd'hui ou demain). La programmation survit à un redémarrage de l'add-on ; manquée de plus de 30 min pendant un arrêt, elle est abandonnée.
+
+Si Telegram est configuré, la programmation, le lancement et un éventuel échec sont notifiés. La voiture doit être joignable par l'intégration : endormie, elle est réveillée par la commande, ce qui peut prendre quelques dizaines de secondes.
+
+Installation Docker (hors add-on) : renseigner aussi `HA_URL` (ex : `http://homeassistant.local:8123`) et `HA_TOKEN`, un jeton d'accès longue durée créé depuis votre profil Home Assistant.
 
 ## Liens de partage temporaires
 

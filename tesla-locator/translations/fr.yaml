@@ -58,5 +58,8 @@ configuration:
   telegram_commands:
     name: Commandes du bot Telegram
     description: "Répond aux commandes /position, /etat, /charge et /partage, uniquement dans les chats configurés."
+  charge_switch_entity:
+    name: Entité de recharge
+    description: "Interrupteur Home Assistant qui démarre / arrête la recharge (ex : switch.ma_tesla_charge, fourni par Tesla Fleet, Teslemetry ou Tessie). Active les boutons de recharge et la recharge programmée. Laisser vide pour désactiver."
 network:
   3000/tcp: Port de l'interface web pour un accès direct par jeton (laisser vide pour n'utiliser que la barre latérale Home Assistant)

@@ -23,6 +23,14 @@ import { initTelegram, isTelegramConfigured } from "./telegram";
 import { initNotifications, onTelemetryUpdate, getNotificationStatus, sendTestNotification } from "./notifications";
 import { initTelegramBot } from "./telegramBot";
 import { createSimulator, isSimulatorScenario } from "./simulator";
+import {
+  initChargeControl,
+  getChargeControlStatus,
+  setCharging,
+  scheduleChargeStart,
+  clearSchedule,
+  MAX_SCHEDULE_AHEAD_MS,
+} from "./chargeControl";
 
 // Automatic version detection helper
 function getAppVersion(): string {
@@ -61,6 +69,7 @@ loadAddonOptions();
 initShareLinks();
 initTelegram();
 initNotifications();
+initChargeControl();
 
 const app = express();
 const PORT = 3000;
@@ -717,6 +726,44 @@ app.post("/api/notifications/test", async (req, res) => {
   }
   const results = await sendTestNotification();
   res.json({ results });
+});
+
+// ================= CHARGE CONTROL (admin, through Home Assistant) =================
+
+app.get("/api/charge-control", (req, res) => {
+  if (getRequestRole(req) !== "admin") {
+    return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
+  }
+  res.json(getChargeControlStatus());
+});
+
+app.post("/api/charge-control", async (req, res) => {
+  if (getRequestRole(req) !== "admin") {
+    return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
+  }
+  if (!getChargeControlStatus().configured) {
+    return res.status(400).json({ error: "Pilotage de la charge non configuré : renseigner l'entité switch de recharge." });
+  }
+
+  const { action, at } = req.body ?? {};
+  try {
+    if (action === "start" || action === "stop") {
+      return res.json(await setCharging(action === "start"));
+    }
+    if (action === "schedule") {
+      const now = Date.now();
+      if (typeof at !== "number" || !Number.isFinite(at) || at <= now || at > now + MAX_SCHEDULE_AHEAD_MS) {
+        return res.status(400).json({ error: "Heure de démarrage invalide (dans les 7 prochains jours)." });
+      }
+      return res.json(scheduleChargeStart(at));
+    }
+    if (action === "cancel") {
+      return res.json(clearSchedule());
+    }
+    return res.status(400).json({ error: "Action invalide." });
+  } catch (err) {
+    return res.status(502).json({ error: err instanceof Error ? err.message : String(err) });
+  }
 });
 
 // Applies an MQTT message (real, test or simulated) to the server state and pushes it to SSE clients.

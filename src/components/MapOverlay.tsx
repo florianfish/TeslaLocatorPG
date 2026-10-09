@@ -364,8 +364,14 @@ export default function MapOverlay({
         <ActiveRouteHud route={carTelemetry.active_route} compact={!isMinimized} />
       )}
 
-      {carTelemetry?.state === "charging" && (
-        <ChargingPanel charging={carTelemetry.charging} batteryLevel={carTelemetry.battery_level} compact={!isMinimized} />
+      {(carTelemetry?.state === "charging" || carTelemetry?.charging?.plugged_in) && (
+        <ChargingPanel
+          charging={carTelemetry.charging}
+          batteryLevel={carTelemetry.battery_level}
+          isCharging={carTelemetry.state === "charging"}
+          compact={!isMinimized}
+          controlsToken={isAdmin ? token : undefined}
+        />
       )}
       </div>
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.5
+
+- Pilotage de la recharge via l'interrupteur de recharge d'une intégration Tesla de Home Assistant (Tesla Fleet, Teslemetry, Tessie), à renseigner dans la nouvelle option **Entité de recharge** : boutons pour arrêter ou démarrer la charge, et démarrage programmé à l'heure choisie. Réservé aux administrateurs.
+- Notifications Telegram de la recharge programmée : programmation, lancement et échec éventuel.
+- Le panneau de recharge s'affiche aussi quand la voiture est branchée sans charger.
+- L'add-on demande désormais l'accès à l'API Home Assistant (pour actionner l'interrupteur de recharge).
+
 ## 1.3.4
 
 - Navigation en cours : quand un itinéraire est actif dans la voiture, un panneau affiche la destination, l'heure d'arrivée prévue, le temps et la distance restants, la batterie à l'arrivée et le retard dû au trafic. Un drapeau marque la destination sur la carte.
