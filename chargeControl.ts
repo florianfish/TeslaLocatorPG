@@ -11,12 +11,18 @@ export interface ChargeControlStatus {
   reason: string | null;
   entity: string | null;
   scheduledAt: number | null;
-  lastRun: { at: number; action: "on" | "off"; scheduled: boolean; ok: boolean; error?: string } | null;
+  // pending: sent to Home Assistant, still waiting for its answer (car waking up)
+  lastRun: { at: number; action: "on" | "off"; scheduled: boolean; ok: boolean; pending?: boolean; error?: string } | null;
 }
 
 // A schedule missed while the server was down still runs if it is not older than this
 const MISSED_SCHEDULE_GRACE_MS = 30 * 60 * 1000;
 export const MAX_SCHEDULE_AHEAD_MS = 7 * 24 * 60 * 60 * 1000;
+// Home Assistant answers once the command reached the car, which first has to wake up
+// when asleep (often 20 to 60 s): give up only after this
+const HA_CALL_TIMEOUT_MS = 2 * 60 * 1000;
+// The UI is answered after this, the command keeps running and its outcome lands in lastRun
+const RESPONSE_WAIT_MS = 20 * 1000;
 
 let entity = "";
 let haBaseUrl = "";
@@ -72,7 +78,7 @@ async function callSwitch(on: boolean): Promise<void> {
     method: "POST",
     headers: { Authorization: `Bearer ${haToken}`, "Content-Type": "application/json" },
     body: JSON.stringify({ entity_id: entity }),
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(HA_CALL_TIMEOUT_MS),
   });
   if (!res.ok) {
     const detail = (await res.text().catch(() => "")).slice(0, 200);
@@ -80,17 +86,45 @@ async function callSwitch(on: boolean): Promise<void> {
   }
 }
 
-export async function setCharging(on: boolean, scheduled = false): Promise<ChargeControlStatus> {
+function describeError(err: unknown): string {
+  if (err instanceof Error && err.name === "TimeoutError") {
+    return `Pas de réponse de Home Assistant après ${HA_CALL_TIMEOUT_MS / 60000} min : voiture injoignable ?`;
+  }
+  return err instanceof Error ? err.message : String(err);
+}
+
+// Sends the command and records its outcome in lastRun; rejects with a readable message
+function runSwitch(on: boolean, scheduled: boolean): Promise<void> {
   const action = on ? "on" : "off";
+  lastRun = { at: Date.now(), action, scheduled, ok: false, pending: true };
+  return callSwitch(on).then(
+    () => {
+      lastRun = { at: Date.now(), action, scheduled, ok: true };
+      console.log(`Charge control: ${entity} turned ${action}${scheduled ? " (scheduled)" : ""}`);
+    },
+    (err) => {
+      const error = describeError(err);
+      lastRun = { at: Date.now(), action, scheduled, ok: false, error };
+      console.error(`Charge control: failed to turn ${action} ${entity}: ${error}`);
+      throw new Error(error);
+    }
+  );
+}
+
+// Immediate start / stop from the UI: answers once Home Assistant confirms, or after
+// RESPONSE_WAIT_MS with lastRun still pending while a sleeping car wakes up
+export async function setCharging(on: boolean): Promise<ChargeControlStatus> {
+  const run = runSwitch(on, false);
+  let waitTimer: ReturnType<typeof setTimeout> | undefined;
+  const slow = new Promise<"slow">((resolve) => {
+    waitTimer = setTimeout(() => resolve("slow"), RESPONSE_WAIT_MS);
+  });
   try {
-    await callSwitch(on);
-    lastRun = { at: Date.now(), action, scheduled, ok: true };
-    console.log(`Charge control: ${entity} turned ${action}${scheduled ? " (scheduled)" : ""}`);
-  } catch (err) {
-    const error = err instanceof Error ? err.message : String(err);
-    lastRun = { at: Date.now(), action, scheduled, ok: false, error };
-    console.error(`Charge control: failed to turn ${action} ${entity}: ${error}`);
-    throw new Error(error);
+    const result = await Promise.race([run.then(() => "done" as const), slow]);
+    // Still running: its outcome is kept in lastRun, nobody awaits the rejection anymore
+    if (result === "slow") run.catch(() => {});
+  } finally {
+    clearTimeout(waitTimer);
   }
   return getChargeControlStatus();
 }
@@ -102,7 +136,7 @@ function formatTime(at: number): string {
 async function runScheduledStart() {
   clearSchedule();
   try {
-    await setCharging(true, true);
+    await runSwitch(true, true);
     void broadcastMessage("⚡ <b>Recharge programmée lancée</b>\nLa demande de démarrage a été envoyée à la voiture.");
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);

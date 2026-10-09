@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.8
+
+- Pilotage de la recharge : une voiture endormie met souvent 20 à 60 s à se réveiller avant d'exécuter la commande. Tesla Tracker attend désormais jusqu'à 2 minutes au lieu de signaler un échec au bout de 15 s alors que la charge finissait par démarrer.
+- Après 20 s, les boutons Arrêter / Démarrer affichent « Commande envoyée, la voiture se réveille… », puis la confirmation ou l'erreur dès que Home Assistant répond.
+- La notification Telegram du démarrage programmé indique le résultat réel.
+
 ## 1.3.7
 
 - Correction : sans pression de pneu reçue de TeslaMate, le résumé de la télémétrie affichait « Infinity bar » et signalait à tort une alerte pneus.

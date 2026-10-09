@@ -6,7 +6,7 @@ interface ChargeControlStatus {
   reason: string | null;
   entity: string | null;
   scheduledAt: number | null;
-  lastRun: { at: number; action: "on" | "off"; scheduled: boolean; ok: boolean; error?: string } | null;
+  lastRun: { at: number; action: "on" | "off"; scheduled: boolean; ok: boolean; pending?: boolean; error?: string } | null;
 }
 
 interface ChargeControlsProps {
@@ -44,7 +44,7 @@ export default function ChargeControls({ token, isCharging }: ChargeControlsProp
   const [pending, setPending] = useState<Action | null>(null);
   // Commands acting on the car need a second click to confirm
   const [confirming, setConfirming] = useState<Action | null>(null);
-  const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ tone: "ok" | "pending" | "error"; text: string } | null>(null);
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -60,6 +60,26 @@ export default function ChargeControls({ token, isCharging }: ChargeControlsProp
       if (confirmTimer.current) clearTimeout(confirmTimer.current);
     };
   }, [token]);
+
+  // While a command waits for the car to wake up, poll its outcome and replace the pending message
+  const isPending = feedback?.tone === "pending";
+  useEffect(() => {
+    if (!isPending) return;
+    const interval = setInterval(async () => {
+      const res = await fetch(`api/charge-control?token=${encodeURIComponent(token)}`).catch(() => null);
+      const data: ChargeControlStatus | null = res?.ok ? await res.json() : null;
+      if (!data) return;
+      setStatus(data);
+      if (data.lastRun && !data.lastRun.pending) {
+        setFeedback(
+          data.lastRun.ok
+            ? { tone: "ok", text: data.lastRun.action === "on" ? "Démarrage confirmé par la voiture." : "Arrêt confirmé par la voiture." }
+            : { tone: "error", text: data.lastRun.error || "Échec de la commande." }
+        );
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isPending, token]);
 
   if (!status) return null;
   if (!status.configured) {
@@ -100,16 +120,20 @@ export default function ChargeControls({ token, isCharging }: ChargeControlsProp
         schedule: `Recharge programmée ${data.scheduledAt ? formatSchedule(data.scheduledAt) : ""}.`,
         cancel: "Programmation annulée.",
       };
-      setFeedback({ ok: true, text: messages[action] });
+      if (data.lastRun?.pending && (action === "start" || action === "stop")) {
+        setFeedback({ tone: "pending", text: "Commande envoyée, la voiture se réveille… (jusqu'à une minute)" });
+      } else {
+        setFeedback({ tone: "ok", text: messages[action] });
+      }
     } catch (err) {
-      setFeedback({ ok: false, text: err instanceof Error ? err.message : String(err) });
+      setFeedback({ tone: "error", text: err instanceof Error ? err.message : String(err) });
     } finally {
       setPending(null);
     }
   };
 
   const nowAction: Action = isCharging ? "stop" : "start";
-  const lastScheduledFailure = status.lastRun?.scheduled && !status.lastRun.ok ? status.lastRun : null;
+  const lastScheduledFailure = status.lastRun?.scheduled && !status.lastRun.ok && !status.lastRun.pending ? status.lastRun : null;
 
   return (
     <div className="space-y-2.5">
@@ -174,7 +198,9 @@ export default function ChargeControls({ token, isCharging }: ChargeControlsProp
       </div>
 
       {feedback && (
-        <p className={`text-[10px] font-semibold ${feedback.ok ? "text-emerald-400" : "text-rose-400"}`}>{feedback.text}</p>
+        <p className={`text-[10px] font-semibold ${
+          feedback.tone === "ok" ? "text-emerald-400" : feedback.tone === "pending" ? "text-amber-400" : "text-rose-400"
+        }`}>{feedback.text}</p>
       )}
       {!feedback && lastScheduledFailure && (
         <p className="text-[10px] font-semibold text-rose-400">
