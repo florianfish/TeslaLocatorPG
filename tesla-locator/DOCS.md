@@ -69,6 +69,8 @@ Une seule instance peut utiliser un bot à la fois : ne pas réutiliser le même
 
 Un lien de partage donne un accès en **lecture seule** pendant une durée limitée (5 min à 30 jours), sans communiquer le jeton utilisateur permanent. À l'expiration ou à la révocation, la page du destinataire est déconnectée.
 
+Le destinataire voit la position, la vitesse, la batterie, la recharge en cours et, pendant une navigation, la destination avec l'heure d'arrivée prévue et la batterie à l'arrivée. Le kilométrage, la pression des pneus, le mode Sentinelle et le verrouillage restent réservés aux administrateurs.
+
 Prérequis : l'accès direct doit être activé (onglet **Réseau**) et joignable par les destinataires, idéalement en HTTPS derrière un reverse proxy. Renseigner **URL publique** avec cette adresse : sans elle, seul le jeton est fourni.
 
 ### Depuis l'interface

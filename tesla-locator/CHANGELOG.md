@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.4
+
+- Navigation en cours : quand un itinéraire est actif dans la voiture, un panneau affiche la destination, l'heure d'arrivée prévue, le temps et la distance restants, la batterie à l'arrivée et le retard dû au trafic. Un drapeau marque la destination sur la carte.
+- Le panneau de navigation est aussi visible depuis les liens de partage : pratique pour savoir quand un proche arrive.
+- Correction : le préréglage « Pas d'itinéraire actif » de la console publiait sur le topic de position au lieu de celui de l'itinéraire.
+
 ## 1.3.3
 
 - Nouvelles alertes Telegram, chacune activable et réglable : fin de charge imminente, batterie basse, voiture laissée ouverte (déverrouillée, porte, coffre, frunk ou fenêtre ouverts, garée sans personne à bord).
