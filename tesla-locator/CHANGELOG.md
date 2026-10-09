@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.9
+
+- Pilotage de la recharge : choix de l'ampérage et de la limite de charge (%) pour un démarrage immédiat ou programmé. Renseigner les nouvelles options **Entité d'ampérage de recharge** et **Entité de limite de charge** (entités number de Tesla Fleet, Teslemetry ou Tessie).
+- Les valeurs actuelles et les plages acceptées sont lues dans Home Assistant, sans réveiller la voiture.
+- La programmation affichée et les notifications Telegram indiquent l'ampérage et la limite demandés.
+
 ## 1.3.8
 
 - Pilotage de la recharge : une voiture endormie met souvent 20 à 60 s à se réveiller avant d'exécuter la commande. Tesla Tracker attend désormais jusqu'à 2 minutes au lieu de signaler un échec au bout de 15 s alors que la charge finissait par démarrer.

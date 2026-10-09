@@ -61,5 +61,11 @@ configuration:
   charge_switch_entity:
     name: Entité de recharge
     description: "Interrupteur Home Assistant qui démarre / arrête la recharge (ex : switch.ma_tesla_charge, fourni par Tesla Fleet, Teslemetry ou Tessie). Active les boutons de recharge et la recharge programmée. Laisser vide pour désactiver."
+  charge_current_entity:
+    name: Entité d'ampérage de recharge
+    description: "Entité number de Home Assistant pour l'intensité de charge en ampères (ex : number.ma_tesla_charge_current). Permet de choisir l'ampérage au démarrage ou à la programmation. Facultatif."
+  charge_limit_entity:
+    name: Entité de limite de charge
+    description: "Entité number de Home Assistant pour la limite de charge en % (ex : number.ma_tesla_charge_limit). Permet de choisir la limite au démarrage ou à la programmation. Facultatif."
 network:
   3000/tcp: Port de l'interface web pour un accès direct par jeton (laisser vide pour n'utiliser que la barre latérale Home Assistant)

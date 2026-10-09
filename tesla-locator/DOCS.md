@@ -27,6 +27,7 @@ Ces options remplacent le fichier `.env` de l'installation Docker. Après modifi
 | Seuils et délais | `TPMS_ALERT_THRESHOLD` / `BATTERY_LOW_THRESHOLD` / `CHARGE_ENDING_SOON_MINUTES` / `LEFT_OPEN_DELAY_MINUTES` | `2.3` bar, `20` %, `15` min, `10` min par défaut |
 | Commandes du bot Telegram | `TELEGRAM_COMMANDS` | `/position`, `/etat`, `/charge`, `/partage` (activées par défaut) |
 | Entité de recharge | `CHARGE_SWITCH_ENTITY` | Interrupteur Home Assistant de la recharge, pour la démarrer, l'arrêter ou la programmer (voir ci-dessous) |
+| Entités d'ampérage / de limite de charge | `CHARGE_CURRENT_ENTITY` / `CHARGE_LIMIT_ENTITY` | Entités number Home Assistant pour choisir l'ampérage et la limite de charge au démarrage (facultatif) |
 
 ## Accès
 
@@ -72,11 +73,13 @@ TeslaMate ne fait que lire les données de la voiture. Pour démarrer ou arrête
 
 1. Repérer l'entité dans **Paramètres → Appareils et services → Entités** (ex : `switch.ma_tesla_charge`).
 2. La renseigner dans l'option **Entité de recharge** et redémarrer l'add-on.
+3. Facultatif : renseigner aussi **Entité d'ampérage de recharge** (ex : `number.ma_tesla_charge_current`) et **Entité de limite de charge** (ex : `number.ma_tesla_charge_limit`) pour choisir l'ampérage et le pourcentage au démarrage.
 
 Quand la voiture est branchée, le panneau de recharge propose alors (administrateurs uniquement, jamais en lecture seule ni depuis un lien de partage) :
 
 - **Arrêter / Démarrer la charge** immédiatement, avec un second clic de confirmation ;
-- **Démarrage programmé** : choisir une heure, la recharge est lancée à la prochaine occurrence (aujourd'hui ou demain). La programmation survit à un redémarrage de l'add-on ; manquée de plus de 30 min pendant un arrêt, elle est abandonnée.
+- **Démarrage programmé** : choisir une heure, la recharge est lancée à la prochaine occurrence (aujourd'hui ou demain). La programmation survit à un redémarrage de l'add-on ; manquée de plus de 30 min pendant un arrêt, elle est abandonnée ;
+- **Réglages au démarrage** (si les entités number sont renseignées) : ampérage (A) et limite de charge (%), appliqués juste avant un démarrage immédiat ou programmé. Un champ vide garde la valeur actuelle, affichée en grisé. Comme depuis l'application Tesla, ces réglages restent ensuite dans la voiture.
 
 Si Telegram est configuré, la programmation, le lancement et un éventuel échec sont notifiés. La voiture doit être joignable par l'intégration : endormie, elle est réveillée par la commande, ce qui peut prendre quelques dizaines de secondes.
 

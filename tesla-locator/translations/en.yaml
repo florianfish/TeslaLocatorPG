@@ -61,5 +61,11 @@ configuration:
   charge_switch_entity:
     name: Charging entity
     description: "Home Assistant switch that starts / stops charging (e.g. switch.my_tesla_charge, provided by Tesla Fleet, Teslemetry or Tessie). Enables the charging buttons and scheduled charging. Leave empty to disable."
+  charge_current_entity:
+    name: Charging current entity
+    description: "Home Assistant number entity for the charging current in amps (e.g. number.my_tesla_charge_current). Lets you choose the current when starting or scheduling a charge. Optional."
+  charge_limit_entity:
+    name: Charge limit entity
+    description: "Home Assistant number entity for the charge limit in % (e.g. number.my_tesla_charge_limit). Lets you choose the limit when starting or scheduling a charge. Optional."
 network:
   3000/tcp: Web UI port for token-based direct access (leave empty to only use the Home Assistant sidebar)

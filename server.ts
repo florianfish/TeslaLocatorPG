@@ -29,7 +29,10 @@ import {
   setCharging,
   scheduleChargeStart,
   clearSchedule,
+  readChargeSettings,
+  validateChargeSettings,
   MAX_SCHEDULE_AHEAD_MS,
+  type ChargeSettings,
 } from "./chargeControl";
 
 // Automatic version detection helper
@@ -730,11 +733,12 @@ app.post("/api/notifications/test", async (req, res) => {
 
 // ================= CHARGE CONTROL (admin, through Home Assistant) =================
 
-app.get("/api/charge-control", (req, res) => {
+app.get("/api/charge-control", async (req, res) => {
   if (getRequestRole(req) !== "admin") {
     return res.status(403).json({ error: "Accès refusé. Le jeton d'administration (Admin) est requis pour cette opération." });
   }
-  res.json(getChargeControlStatus());
+  // Current values and ranges are read from Home Assistant's states, without waking the car
+  res.json({ ...getChargeControlStatus(), settings: await readChargeSettings() });
 });
 
 app.post("/api/charge-control", async (req, res) => {
@@ -745,17 +749,25 @@ app.post("/api/charge-control", async (req, res) => {
     return res.status(400).json({ error: "Pilotage de la charge non configuré : renseigner l'entité switch de recharge." });
   }
 
-  const { action, at } = req.body ?? {};
+  const { action, at, settings: rawSettings } = req.body ?? {};
+  let settings: ChargeSettings = {};
+  if (action === "start" || action === "schedule") {
+    try {
+      settings = await validateChargeSettings(rawSettings);
+    } catch (err) {
+      return res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  }
   try {
     if (action === "start" || action === "stop") {
-      return res.json(await setCharging(action === "start"));
+      return res.json(await setCharging(action === "start", settings));
     }
     if (action === "schedule") {
       const now = Date.now();
       if (typeof at !== "number" || !Number.isFinite(at) || at <= now || at > now + MAX_SCHEDULE_AHEAD_MS) {
         return res.status(400).json({ error: "Heure de démarrage invalide (dans les 7 prochains jours)." });
       }
-      return res.json(scheduleChargeStart(at));
+      return res.json(scheduleChargeStart(at, settings));
     }
     if (action === "cancel") {
       return res.json(clearSchedule());
